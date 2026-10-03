@@ -1,0 +1,49 @@
+# Gitea Actions：push 后自动构建安卓 Debug APK
+#
+# 前置条件（在 Gitea 实例侧）：
+#   1. 站点已启用 Actions（ENABLED_ACTIONS=true，Gitea 1.19+ 默认支持）
+#   2. 已注册并上线 act_runner（仓库 → 设置 → Actions → Runners 可查看状态）
+#   3. Runner 能访问 JDK / Android SDK / Gradle 的下载源
+#
+# 产物：app-debug.apk（可直接安装），在仓库的 Actions 运行详情页 → Artifacts 下载。
+
+name: Android APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:        # 也支持在网页上手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: 安装 Android SDK 命令行工具
+        uses: android-actions/setup-android@v3
+
+      - name: 安装 Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: 构建 Debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: 上传 APK 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

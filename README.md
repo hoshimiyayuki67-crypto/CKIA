@@ -118,6 +118,11 @@ uvicorn app.main:app --reload --port 8000
 
 ### 2. 运行安卓 APP
 
+**方式一：仓库内 CI 自动构建（推荐）** —— 推送到 `main` 后由 Gitea Actions 自动出包，
+在仓库 Actions 页面 → Artifacts 下载 `app-debug-apk`。工作流见 [.gitea/workflows/android.yml](.gitea/workflows/android.yml)。
+
+**方式二：本地构建**
+
 ```bash
 cd android
 ./gradlew assembleDebug        # 产物：app/build/outputs/apk/debug/app-debug.apk
