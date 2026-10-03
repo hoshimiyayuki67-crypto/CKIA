@@ -1,0 +1,3 @@
+{"question": "助学贷款怎么申请？", "expected_points": ["生源地信用助学贷款", "学生资助管理中心"], "expected_source": "关于做好2026年生源地信用助学贷款工作的通知", "should_refuse": false}
+{"question": "报销需要哪些材料？", "expected_points": ["报销单", "发票"], "expected_source": "财务报销管理办法", "should_refuse": false}
+{"question": "今天食堂有什么菜？", "expected_points": [], "expected_source": "", "should_refuse": true}

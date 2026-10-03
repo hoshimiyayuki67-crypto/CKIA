@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    container_name: campus-agent
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data          # 向量库、文档库、日志持久化
+      - ./config:/app/config      # 学期时间轴等运行期配置
+    restart: unless-stopped
+
+  # 生产环境向量库（开发期默认使用本地 Chroma，可切换启用）
+  # milvus:
+  #   image: milvusdb/milvus:v2.4.0
+  #   ports:
+  #     - "19530:19530"
+  #   volumes:
+  #     - milvus_data:/var/lib/milvus

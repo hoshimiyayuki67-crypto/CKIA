@@ -1,0 +1,58 @@
+# 学期时间轴配置（对应设计文档 第五章·主动提醒调度）
+# 调度器每日扫描本文件，命中窗口条件时向已订阅该类别的用户推送提醒。
+# 字段说明：
+#   id            唯一标识
+#   name          事项名称
+#   window        触发窗口（自然语言描述，供人工维护与展示）
+#   remind_before 提前提醒天数
+#   category      事务类别（资助/教务/财务/学籍/就业/生活）
+#   card_template 推送所用卡片模板标识
+
+- id: aid_apply
+  name: 助学贷款申请
+  window: "8月下旬-9月"
+  remind_before: 3
+  category: 资助
+  card_template: aid_card
+
+- id: hardship_identify
+  name: 家庭经济困难认定
+  window: "9月"
+  remind_before: 5
+  category: 资助
+  card_template: aid_card
+
+- id: course_adjust
+  name: 退补选与重修报名
+  window: "开学第1-2周"
+  remind_before: 2
+  category: 教务
+  card_template: course_card
+
+- id: major_transfer
+  name: 转专业申请
+  window: "期中前后"
+  remind_before: 5
+  category: 学籍
+  card_template: major_card
+
+- id: score_review
+  name: 成绩复核
+  window: "期末后 5 日内"
+  remind_before: 3
+  category: 教务
+  card_template: score_review_card
+
+- id: finance_close
+  name: 财务封账
+  window: "每学期末"
+  remind_before: 5
+  category: 财务
+  card_template: finance_card
+
+- id: job_procedure
+  name: 就业手续（推荐表/三方/档案）
+  window: "毕业季"
+  remind_before: 7
+  category: 就业
+  card_template: job_card
