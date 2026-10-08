@@ -1,6 +1,6 @@
 services:
   gateway:
-    image: caddy:2-alpine
+    image: ${CAMPUS_GATEWAY_IMAGE:-caddy:2-alpine}
     restart: unless-stopped
     environment:
       CAMPUS_DOMAIN: ${CAMPUS_DOMAIN:?Set CAMPUS_DOMAIN}

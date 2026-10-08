@@ -6,6 +6,8 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile
+      args:
+        PYTHON_IMAGE: ${CAMPUS_PYTHON_IMAGE:-python:3.11-slim}
     restart: unless-stopped
     init: true
     environment:

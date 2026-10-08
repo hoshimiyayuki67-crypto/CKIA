@@ -57,6 +57,8 @@ python3 scripts/check-backend-deployment.py https://api.example.com:7010
 
 网关只发布配置的 HTTPS 端口；证书目录只读挂载整个 `/etc/letsencrypt` 树，以保留 live 到 archive 的符号链接。私钥不得提交 Git。手动 DNS 验证没有自动续期，必须在到期前重新验证并执行网关 `caddy reload --config /etc/caddy/Caddyfile`；长期部署应换用域名供应商的 DNS 插件和自动续期钩子。
 
+Docker Hub 无法访问时，可在 `.env` 中设置 `CAMPUS_PYTHON_IMAGE` 和 `CAMPUS_GATEWAY_IMAGE` 为可访问、可信的镜像地址。服务器本次使用 Amazon ECR Public 的 `public.ecr.aws/docker/library/python:3.11-slim` 和 `public.ecr.aws/docker/library/caddy:2-alpine`。修改基础镜像后需重新构建 API。
+
 ## 资料与更新
 
 把审核过的 JSON 记录放在 knowledge/processed，确保容器 UID 10001 能读取目录和文件。该目录只读挂载且不会被打包入镜像。先验证记录，再重启 API：
