@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:campus_assistant/core/reply_service.dart';
 import 'package:campus_assistant/main.dart';
 import 'package:flutter/material.dart';
@@ -33,4 +35,3 @@ void main() {
     expect(wrongCategory!['status'], 'refusal');
   });
 }
-import 'dart:io';
