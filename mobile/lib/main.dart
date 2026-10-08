@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const CampusApp());
+import 'core/reply_service.dart';
+import 'features/chat/chat_screen.dart';
+
+void main() {
+  const demo = bool.fromEnvironment('DEMO_MODE', defaultValue: true);
+  const api = String.fromEnvironment('API_BASE_URL');
+  runApp(CampusApp(service: demo ? DemoReplyService() : ApiReplyService(api)));
+}
 
 class CampusApp extends StatelessWidget {
-  const CampusApp({super.key});
+  const CampusApp({super.key, required this.service});
+  final ReplyService service;
 
   @override
   Widget build(BuildContext context) {
@@ -11,13 +19,7 @@ class CampusApp extends StatelessWidget {
       title: '校园万事通',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
-      home: Scaffold(
-        appBar: AppBar(title: const Text('校园万事通')),
-        body: const Padding(
-          padding: EdgeInsets.all(24),
-          child: Text('开发准备中\n\n知识库尚未接入，暂无法核实学校办事规定。'),
-        ),
-      ),
+      home: ChatScreen(service: service),
     );
   }
 }

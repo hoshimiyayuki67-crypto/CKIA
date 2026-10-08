@@ -6,3 +6,4 @@ android/key.properties
 *.jks
 *.keystore
 .idea/
+android/
