@@ -3,6 +3,7 @@
 def centralMirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
 gradle.beforeSettings { settings ->
     settings.pluginManagement.repositories.maven { url = uri(centralMirror) }
+    settings.pluginManagement.repositories.gradlePluginPortal()
 }
 gradle.beforeProject { project ->
     project.buildscript.repositories.maven { url = uri(centralMirror) }
