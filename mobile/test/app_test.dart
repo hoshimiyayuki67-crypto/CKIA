@@ -23,10 +23,12 @@ void main() {
     expect(tester.widget<CheckboxListTile>(checkbox).value, isTrue);
   });
 
-  test('unrelated question and incorrect category refuse', () async {
-    TestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets('unrelated question and incorrect category refuse', (tester) async {
     final service = DemoReplyService();
-    expect((await service.ask('今天天气如何？', null))['status'], 'refusal');
-    expect((await service.ask('测试借书', '教务'))['status'], 'refusal');
+    // AssetBundle uses real platform I/O; run outside the widget fake clock.
+    final unrelated = await tester.runAsync(() => service.ask('今天天气如何？', null));
+    expect(unrelated!['status'], 'refusal');
+    final wrongCategory = await tester.runAsync(() => service.ask('测试借书', '教务'));
+    expect(wrongCategory!['status'], 'refusal');
   });
 }
