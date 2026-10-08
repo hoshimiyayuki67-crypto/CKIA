@@ -34,8 +34,8 @@ development/               架构、流程、任务清单
 
 已安装后端依赖时，可从根目录执行 `powershell -ExecutionPolicy Bypass -File scripts/start-dev.ps1 -Demo`，访问 http://127.0.0.1:8000/ 演示卡片。省略 -Demo 使用正式资料目录，没有已审核资料时拒答。
 
-交付目标为 Android APK，由 GitHub Actions 构建；操作见 mobile/DEVELOPMENT.md。Flutter 已实现原生对话、类别筛选、卡片和材料勾选，可离线演示或连接 HTTPS 后端。
+交付目标为 Android APK，由 GitHub Actions 构建；操作见 mobile/DEVELOPMENT.md。Flutter 已实现原生对话、类别筛选、卡片、本地记录与勾选保存、资料夹、院校选择、联网开关、拍照识别、本地提醒和离线资料查看；详见 [v0.4](development/v0.4.md)。
 
-后端已实现人工结构化知识记录加载、事项别名检索、来源与字段校验、卡片/拒答/澄清响应。H5 为辅助开发预览。正式模式尚无审核通过的学校资料，不用于实际办事判断；模型混合检索、真机验收、截图和推送仍待开发。
+后端已实现审核知识检索、院校隔离、DeepSeek 语义筛选和 Tavily 搜索证据分析。Tavily 真实搜索尚待服务器密钥配置；正式模式尚无审核学校资料，不能据此判断办理资格。H5 为辅助预览。向量混合检索、云端推送和安卓真机验收仍待完成。
 
 仓库中原有 `app/`、`android/` 等文件处于删除状态，本次未恢复；新代码放入独立目录，便于审阅迁移。设计文档保持原样。

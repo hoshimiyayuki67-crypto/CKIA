@@ -1,6 +1,6 @@
 # Flutter 开发
 
-交付目标为 Android APK。当前已实现 Flutter 原生对话、类别筛选、卡片与材料勾选；H5 是独立辅助预览，不是最终交付物。
+交付目标为 Android APK。当前已实现 Flutter 原生对话、类别筛选、卡片、本地保存、资料夹、院校选择、联网开关、拍照文字识别、手机本地提醒和离线查看；H5 是独立辅助预览，不是最终交付物。
 
 ## GitHub Actions 构建
 
@@ -31,8 +31,8 @@ flutter run
 flutter build apk --release --dart-define=DEMO_MODE=true
 ```
 
-平台生成在独立目录中，不覆盖 Dart 源码与业务测试。生成的 mobile/android 默认忽略，平台设置统一由 scripts/prepare_android.py 配置应用中文名及 INTERNET 权限。
+平台生成在独立目录中，不覆盖 Dart 源码与业务测试。生成的 mobile/android 默认忽略，平台设置统一由 scripts/prepare_android.py 配置中文名、图标、通知权限/重启接收器、ML Kit 中文模型、desugaring 和应用私有数据禁用云备份。最低支持 Android 7（API 24）。
 
 在线构建参数：`--dart-define=DEMO_MODE=false --dart-define=API_BASE_URL=https://你的服务地址`。客户端只接受 HTTPS，不在 release 构建启用明文请求。网络错误显示可重试提示，不以离线演示数据代替真实回答。
 
-相机、系统推送、WebView、离线缓存尚未实现。材料勾选和当前消息仅保存在内存中，关闭应用后清空。
+本地存储、拍照/相册文字识别、离线资料、院校与联网开关使用说明见 [v0.4](../development/v0.4.md)。提醒使用系统本地通知，云端推送和 WebView 仍待实现。真实设备的相机、权限和后台通知需要真机验收。

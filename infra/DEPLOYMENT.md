@@ -6,15 +6,17 @@
 - 健康检查：`https://v4.yukifn.xyz:7010/health`
 - 服务器：ARM64 Armbian / Ubuntu 26.04。
 - 源码目录：`/opt/campus-assistant`，使用 Git archive 上传已提交源码。
-- 应用源码版本：`a917907ffe28e0dd8227c2bca104dcae254af7ae`。
-- API 镜像：`campus-assistant-api:a917907`。
+- 应用运行源码版本：`fcbd1fc`（v0.4 后端；后续客户端提交不影响镜像）。
+- API 镜像：`campus-assistant-api:fcbd1fc`。
 - Compose：`infra/compose.yaml` + `infra/compose.tls.yaml`，环境文件 `infra/.env`。
 - 网关监听服务器 7010，转发至 API；API 只发布到 `127.0.0.1:8000`。
 - Docker 服务启用开机启动，两个容器使用 `unless-stopped` 重启策略。
 
 健康状态为 `ok`、`demo_mode=false`、`knowledge_status=not_configured`，`ai_status=configured`、`ai_model=deepseek-flash`。DeepSeek 官方模型列表验证通过，公网 `/api/v1/chat` 使用 `--require-ai` 验证真实模型调用成功、`ai_status=used`，无依据时仍拒答。当前无学校审核资料，不提供虚构办事依据。
 
-模型密钥只保存在服务器权限 0600 的 `infra/.env`，由 Compose 注入后端容器。现有在线 APK 直接连接新版后端，无需重构建。调用限额及故障降级见 [后端开发](../backend/DEVELOPMENT.md)。本地 32 项后端测试和 Backend container 工作流均通过。
+模型密钥只保存在服务器权限 0600 的 `infra/.env`，由 Compose 注入后端容器。现有在线 APK 直接连接新版后端；v0.4 搜索开关、院校选择等新入口需要新版 APK。调用限额及故障降级见 [后端开发](../backend/DEVELOPMENT.md)。本地 40 项后端测试和 Backend container 工作流均通过。
+
+已部署 Tavily 院校官网搜索适配，健康检查为 `search_provider=tavily`、`search_status=not_configured`。用户将后续配置 `TAVILY_API_KEY`，目前真实联网搜索不会执行；打开开关时明确返回 unavailable 并保留本地查询。院校接口、公网缺失密钥降级，以及隔离测试资料 + 模拟搜索摘要 + 真实 DeepSeek 的证据分析验证通过。配置步骤见 [v0.4](../development/v0.4.md)。
 
 使用隔离演示记录对真实模型执行完整匹配与卡片校验，结果为 `status=card`、`ai_status=used`，来源与卡片绑定一致。该验证不向正式知识目录写入演示资料。模型引用采用文件编号与片段编号生成的固定引用键，避免模型拆分复合编号。
 
