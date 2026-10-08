@@ -1,0 +1,12 @@
+{
+    auto_https off
+}
+
+https://{$CAMPUS_DOMAIN} {
+    tls /certs/live/{$CAMPUS_DOMAIN}/fullchain.pem /certs/live/{$CAMPUS_DOMAIN}/privkey.pem
+    encode gzip
+    request_body {
+        max_size 1MB
+    }
+    reverse_proxy api:8000
+}

@@ -40,6 +40,23 @@ python3 scripts/check-backend-deployment.py https://api.example.com
 
 参考：[Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)、[Compose 健康启动顺序](https://docs.docker.com/compose/how-tos/startup-order/)。
 
+## 只有高位公网端口时
+
+例如公网 7010 转发到服务器 7010，可用 DNS-01 验证申请公开证书，再使用 `compose.tls.yaml`。证书验证仍需要控制域名 DNS，不能把 ACME 的标准 80/443 验证改成 7010。
+
+```bash
+certbot certonly --manual --preferred-challenges dns -d api.example.com
+# 按提示添加 DNS TXT，确认公网解析生效后继续。
+# infra/.env 设置：
+# CAMPUS_DOMAIN=api.example.com
+# CAMPUS_CERT_DIR=/etc/letsencrypt
+# CAMPUS_HTTPS_PORT=7010
+docker compose --env-file infra/.env -f infra/compose.yaml -f infra/compose.tls.yaml up -d --build --wait
+python3 scripts/check-backend-deployment.py https://api.example.com:7010
+```
+
+网关只发布配置的 HTTPS 端口；证书目录只读挂载整个 `/etc/letsencrypt` 树，以保留 live 到 archive 的符号链接。私钥不得提交 Git。手动 DNS 验证没有自动续期，必须在到期前重新验证并执行网关 `caddy reload --config /etc/caddy/Caddyfile`；长期部署应换用域名供应商的 DNS 插件和自动续期钩子。
+
 ## 资料与更新
 
 把审核过的 JSON 记录放在 knowledge/processed，确保容器 UID 10001 能读取目录和文件。该目录只读挂载且不会被打包入镜像。先验证记录，再重启 API：

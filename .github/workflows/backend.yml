@@ -29,6 +29,11 @@ jobs:
         env:
           CAMPUS_DOMAIN: api.example.com
         run: docker compose -f infra/compose.yaml -f infra/compose.https.yaml config --quiet
+      - name: Validate custom-port TLS Compose configuration
+        env:
+          CAMPUS_DOMAIN: api.example.com
+          CAMPUS_CERT_DIR: /etc/letsencrypt
+        run: docker compose -f infra/compose.yaml -f infra/compose.tls.yaml config --quiet
       - name: Build and start container
         run: docker compose -f infra/compose.yaml up -d --build --wait --wait-timeout 120
       - name: Verify deployed API

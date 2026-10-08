@@ -1,0 +1,25 @@
+services:
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      CAMPUS_DOMAIN: ${CAMPUS_DOMAIN:?Set CAMPUS_DOMAIN}
+    ports:
+      - "${CAMPUS_HTTPS_PORT:-7010}:443"
+    volumes:
+      - ./Caddyfile.tls:/etc/caddy/Caddyfile:ro
+      - ${CAMPUS_CERT_DIR:?Set CAMPUS_CERT_DIR to the certificate directory}:/certs:ro
+      - caddy_tls_data:/data
+      - caddy_tls_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  caddy_tls_data:
+  caddy_tls_config:
