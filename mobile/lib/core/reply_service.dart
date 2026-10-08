@@ -3,12 +3,17 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
+import 'school.dart';
+
 typedef Json = Map<String, dynamic>;
 
 abstract class ReplyService {
   bool get demoMode;
-  Future<Json> ask(String question, String? category);
+  Future<Json> ask(String question, String? category,
+      {School school = schoolsFirst, bool searchEnabled = false});
 }
+
+const schoolsFirst = School('imuchuangye', '内蒙古大学创业学院', 'imuchuangye.cn');
 
 class DemoReplyService implements ReplyService {
   DemoReplyService({this.loadRecord});
@@ -18,14 +23,16 @@ class DemoReplyService implements ReplyService {
   bool get demoMode => true;
 
   @override
-  Future<Json> ask(String question, String? category) async {
+  Future<Json> ask(String question, String? category,
+      {School school = schoolsFirst, bool searchEnabled = false}) async {
     final record = jsonDecode(
       await (loadRecord?.call() ?? rootBundle.loadString('assets/demo-library.json')),
     ) as Json;
     final matches = (record['aliases'] as List).any(
       (alias) => question.contains(alias as String),
     );
-    if (!matches || (category != null && category != record['category'])) {
+    if (school.id != 'imuchuangye' || !matches ||
+        (category != null && category != record['category'])) {
       return {
         'status': 'refusal',
         'message': '未查询到可核实的规定，请咨询学校相关职能部门。',
@@ -52,7 +59,8 @@ class ApiReplyService implements ReplyService {
   bool get demoMode => false;
 
   @override
-  Future<Json> ask(String question, String? category) async {
+  Future<Json> ask(String question, String? category,
+      {School school = schoolsFirst, bool searchEnabled = false}) async {
     final base = Uri.parse(baseUrl);
     if (base.scheme != 'https' || base.host.isEmpty) {
       throw const FormatException('请配置 HTTPS 后端地址');
@@ -66,8 +74,10 @@ class ApiReplyService implements ReplyService {
       request.write(jsonEncode({
         'question': question,
         if (category != null) 'category': category,
+        'school_id': school.id, 'school_name': school.name,
+        'school_domain': school.domain, 'search_enabled': searchEnabled,
       }));
-      final response = await request.close().timeout(const Duration(seconds: 15));
+      final response = await request.close().timeout(const Duration(seconds: 45));
       final text = await response.transform(utf8.decoder).join().timeout(
         const Duration(seconds: 15),
       );

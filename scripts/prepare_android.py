@@ -12,6 +12,7 @@ if application is None:
     raise ValueError("Android application 配置缺失")
 application.set(f"{{{ANDROID}}}label", "校园万事通")
 application.set(f"{{{ANDROID}}}icon", "@drawable/campus_icon")
+application.set(f"{{{ANDROID}}}allowBackup", "false")
 drawable = manifest.parent / "res" / "drawable"
 drawable.mkdir(parents=True, exist_ok=True)
 (drawable / "campus_icon.xml").write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -29,4 +30,51 @@ if not any(
 ):
     ET.SubElement(root.getroot(), "uses-permission", {f"{{{ANDROID}}}name": "android.permission.INTERNET"})
 root.write(manifest, encoding="utf-8", xml_declaration=True)
-print("Android application label, campus icon and INTERNET permission configured")
+for permission in ("POST_NOTIFICATIONS", "RECEIVE_BOOT_COMPLETED"):
+    full = "android.permission." + permission
+    if not any(node.get(f"{{{ANDROID}}}name") == full
+               for node in root.getroot().findall("uses-permission")):
+        ET.SubElement(root.getroot(), "uses-permission", {f"{{{ANDROID}}}name": full})
+for receiver, actions in (
+    ("ScheduledNotificationReceiver", ()),
+    ("ScheduledNotificationBootReceiver", ("android.intent.action.BOOT_COMPLETED",
+                                          "android.intent.action.MY_PACKAGE_REPLACED")),
+):
+    full = "com.dexterous.flutterlocalnotifications." + receiver
+    if not any(node.get(f"{{{ANDROID}}}name") == full for node in application.findall("receiver")):
+        node = ET.SubElement(application, "receiver", {f"{{{ANDROID}}}name": full,
+                                                      f"{{{ANDROID}}}exported": "false"})
+        if actions:
+            intent = ET.SubElement(node, "intent-filter")
+            for action in actions:
+                ET.SubElement(intent, "action", {f"{{{ANDROID}}}name": action})
+queries = root.getroot().find("queries")
+if queries is None:
+    queries = ET.SubElement(root.getroot(), "queries")
+for scheme in ("https", "http"):
+    intent = ET.SubElement(queries, "intent")
+    ET.SubElement(intent, "action", {f"{{{ANDROID}}}name": "android.intent.action.VIEW"})
+    ET.SubElement(intent, "data", {f"{{{ANDROID}}}scheme": scheme})
+root.write(manifest, encoding="utf-8", xml_declaration=True)
+(drawable / "campus_notification.xml").write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFF" android:pathData="M2,9 L12,3 L22,9 L12,15 Z M6,13 L6,18 Q12,22 18,18 L18,13 L12,17 Z" />
+</vector>\n''', encoding="utf-8")
+raw = manifest.parent / "res" / "raw"
+raw.mkdir(parents=True, exist_ok=True)
+(raw / "keep.xml").write_text('''<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/campus_notification,@drawable/campus_icon" />\n''', encoding="utf-8")
+gradle = manifest.parents[2] / "build.gradle.kts"
+content = gradle.read_text(encoding="utf-8")
+content = content.replace("minSdk = flutter.minSdkVersion", "minSdk = 24")
+if "isCoreLibraryDesugaringEnabled" not in content:
+    content = content.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true")
+if "text-recognition-chinese" not in content:
+    content += '''
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.1")
+}
+'''
+gradle.write_text(content, encoding="utf-8")
+print("Android configured: offline Chinese OCR, local reminders, private storage")

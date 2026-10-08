@@ -5,14 +5,19 @@ import '../../core/app_theme.dart';
 import '../../core/reply_service.dart';
 
 class ActionCardView extends StatefulWidget {
-  const ActionCardView({super.key, required this.card});
+  const ActionCardView({super.key, required this.card, this.checked,
+    this.onChecked, this.onSave, this.onReminder});
   final Json card;
+  final List<int>? checked;
+  final ValueChanged<List<int>>? onChecked;
+  final VoidCallback? onSave, onReminder;
   @override
   State<ActionCardView> createState() => _ActionCardViewState();
 }
 
 class _ActionCardViewState extends State<ActionCardView> {
   final Set<int> _checked = {};
+  Set<int> get checked => widget.checked?.toSet() ?? _checked;
   String field(String name) => widget.card[name] as String? ?? '未查到明确信息';
 
   @override
@@ -44,12 +49,12 @@ class _ActionCardViewState extends State<ActionCardView> {
         child: Column(children: [
           Row(children: [
             const Expanded(child: Text('材料清单', style: TextStyle(fontWeight: FontWeight.w600))),
-            Text(_checked.length.toString() + '/' + materials.length.toString() + ' 已准备',
+            Text(checked.length.toString() + '/' + materials.length.toString() + ' 已准备',
                 style: const TextStyle(fontSize: 11, color: CampusColors.green)),
           ]),
           const SizedBox(height: 10),
           ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(
-            value: materials.isEmpty ? 0 : _checked.length / materials.length,
+            value: materials.isEmpty ? 0 : checked.length / materials.length,
             minHeight: 3, backgroundColor: CampusColors.line, color: CampusColors.green,
           )),
           for (var i = 0; i < materials.length; i++)
@@ -58,9 +63,12 @@ class _ActionCardViewState extends State<ActionCardView> {
               dense: true, contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               activeColor: CampusColors.green,
-              value: _checked.contains(i),
+              value: checked.contains(i),
               onChanged: (value) => setState(() {
-                if (value == true) { _checked.add(i); } else { _checked.remove(i); }
+                final next = checked;
+                if (value == true) { next.add(i); } else { next.remove(i); }
+                _checked.clear(); _checked.addAll(next);
+                widget.onChecked?.call(next.toList()..sort());
               }),
               title: Text(materials[i]['item'] as String? ?? '未查到材料名称',
                   style: const TextStyle(fontSize: 13)),
@@ -117,7 +125,13 @@ class _ActionCardViewState extends State<ActionCardView> {
           ),
       ],
       const SizedBox(height: 12),
-      const Text('勾选仅保存于当前对话，关闭应用后清空。',
+      Wrap(spacing: 8, children: [
+        if (widget.onSave != null) TextButton.icon(onPressed: widget.onSave,
+            icon: const Icon(Icons.bookmark_add_outlined), label: const Text('保存到资料夹')),
+        if (widget.onReminder != null) TextButton.icon(onPressed: widget.onReminder,
+            icon: const Icon(Icons.alarm_add_outlined), label: const Text('设置提醒')),
+      ]),
+      const Text('材料勾选保存在本机；离线资料可能过期，办理前请核对原文。',
           style: TextStyle(fontSize: 10, color: CampusColors.muted)),
     ]);
   }

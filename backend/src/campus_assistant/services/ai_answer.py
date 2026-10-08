@@ -40,7 +40,8 @@ async def ai_answer(
     model: DeepSeek, demo_mode: bool = False,
 ) -> ChatResponse:
     eligible = [entry for entry in repository.eligible(today)
-                if not request.category or entry.category == request.category]
+                if entry.school_id == request.school_id
+                and (not request.category or entry.category == request.category)]
     # First bounded candidate pass; vector retrieval remains a later task.
     ranked = retrieve(request, eligible)
     candidates = (ranked + [entry for entry in eligible if entry not in ranked])[:8]

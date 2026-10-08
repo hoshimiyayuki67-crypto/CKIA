@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from campus_assistant.api.chat import router
 from campus_assistant.intelligence.deepseek import DeepSeek
+from campus_assistant.intelligence.web_search import WebSearch
 from campus_assistant.repositories.knowledge import KnowledgeRepository
 from campus_assistant.services.ai_answer import CallLimit
 
@@ -17,11 +18,13 @@ PROJECT = ROOT.parent
 def create_app(
     repository: KnowledgeRepository | None = None, demo_mode: bool = False,
     model: DeepSeek | None = None,
+    search: WebSearch | None = None,
 ) -> FastAPI:
     application = FastAPI(title="校园万事通", version="0.2.0")
     application.state.knowledge = repository if repository is not None else KnowledgeRepository()
     application.state.demo_mode = demo_mode
     application.state.model = model
+    application.state.search = search if search is not None else WebSearch()
     application.state.call_limit = CallLimit()
     application.include_router(router, prefix="/api/v1")
 
@@ -33,6 +36,7 @@ def create_app(
             "demo_mode": demo_mode,
             "ai_status": "configured" if model else "disabled",
             "ai_model": model.model if model else None,
+            "search_provider": "bing-rss",
         }
 
     if (PROJECT / "web").is_dir():

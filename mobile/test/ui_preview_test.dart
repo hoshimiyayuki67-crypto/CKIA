@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:campus_assistant/core/reply_service.dart';
+import 'package:campus_assistant/core/school.dart';
 import 'package:campus_assistant/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -14,7 +15,8 @@ class PreviewService implements ReplyService {
   bool fail = false;
   int calls = 0;
   @override
-  Future<Json> ask(String question, String? category) async {
+  Future<Json> ask(String question, String? category,
+      {School school = schoolsFirst, bool searchEnabled = false}) async {
     calls++;
     if (fail) { fail = false; throw const SocketException('preview'); }
     return {'status': 'refusal', 'ai_status': 'used',

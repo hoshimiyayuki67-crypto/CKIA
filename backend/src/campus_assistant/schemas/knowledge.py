@@ -27,6 +27,7 @@ class KnowledgeEntry(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     source: Source
+    school_id: str = Field(default="imuchuangye", min_length=1, max_length=80)
     category: Category
     layer: Literal["official", "experience"]
     version: str = Field(min_length=1)

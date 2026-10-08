@@ -193,6 +193,13 @@
     "source": {
       "$ref": "#/$defs/Source"
     },
+    "school_id": {
+      "default": "imuchuangye",
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "School Id",
+      "type": "string"
+    },
     "category": {
       "enum": [
         "资助",

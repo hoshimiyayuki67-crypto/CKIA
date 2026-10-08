@@ -10,6 +10,10 @@ class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     question: str = Field(min_length=1, max_length=2000)
     category: Category | None = None
+    school_id: str = Field(default="imuchuangye", min_length=1, max_length=80)
+    school_name: str | None = Field(default=None, max_length=100)
+    school_domain: str | None = Field(default=None, max_length=253)
+    search_enabled: bool = False
 
     @field_validator("question")
     @classmethod
@@ -51,6 +55,20 @@ class ActionCard(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
+class WebSource(BaseModel):
+    id: str
+    title: str
+    url: str
+    snippet: str
+    retrieved_at: str
+    verified: bool = False
+
+
+class EvidenceClaim(BaseModel):
+    text: str
+    references: list[str] = Field(min_length=1, max_length=8)
+
+
 class ChatResponse(BaseModel):
     status: Literal["refusal", "card", "clarification"] = "refusal"
     message: str
@@ -60,6 +78,11 @@ class ChatResponse(BaseModel):
     ai_status: Literal["disabled", "used", "unavailable"] = "disabled"
     ai_model: str | None = None
     demo_mode: bool = False
+    web_sources: list[WebSource] = Field(default_factory=list)
+    analysis: list[EvidenceClaim] = Field(default_factory=list)
+    local_evidence: dict[str, Source] = Field(default_factory=dict)
+    search_status: Literal["disabled", "used", "empty", "unavailable"] = "disabled"
+    school_id: str = "imuchuangye"
 
     @model_validator(mode="after")
     def enforce_evidence(self):

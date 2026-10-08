@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "ActionCard": {
       "properties": {
@@ -87,6 +88,29 @@
       "title": "ActionCard",
       "type": "object"
     },
+    "EvidenceClaim": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "References",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "references"
+      ],
+      "title": "EvidenceClaim",
+      "type": "object"
+    },
     "Material": {
       "additionalProperties": false,
       "properties": {
@@ -169,6 +193,44 @@
       ],
       "title": "Source",
       "type": "object"
+    },
+    "WebSource": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "snippet": {
+          "title": "Snippet",
+          "type": "string"
+        },
+        "retrieved_at": {
+          "title": "Retrieved At",
+          "type": "string"
+        },
+        "verified": {
+          "default": false,
+          "title": "Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url",
+        "snippet",
+        "retrieved_at"
+      ],
+      "title": "WebSource",
+      "type": "object"
     }
   },
   "properties": {
@@ -235,6 +297,43 @@
       "default": false,
       "title": "Demo Mode",
       "type": "boolean"
+    },
+    "web_sources": {
+      "items": {
+        "$ref": "#/$defs/WebSource"
+      },
+      "title": "Web Sources",
+      "type": "array"
+    },
+    "analysis": {
+      "items": {
+        "$ref": "#/$defs/EvidenceClaim"
+      },
+      "title": "Analysis",
+      "type": "array"
+    },
+    "local_evidence": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Local Evidence",
+      "type": "object"
+    },
+    "search_status": {
+      "default": "disabled",
+      "enum": [
+        "disabled",
+        "used",
+        "empty",
+        "unavailable"
+      ],
+      "title": "Search Status",
+      "type": "string"
+    },
+    "school_id": {
+      "default": "imuchuangye",
+      "title": "School Id",
+      "type": "string"
     }
   },
   "required": [

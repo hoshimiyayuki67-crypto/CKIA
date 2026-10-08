@@ -9,7 +9,8 @@ from campus_assistant.schemas.knowledge import UNKNOWN, KnowledgeEntry
 def answer(
     request: ChatRequest, repository: KnowledgeRepository, today: date, demo_mode: bool = False
 ) -> ChatResponse:
-    hits = retrieve(request, repository.eligible(today))
+    hits = retrieve(request, [entry for entry in repository.eligible(today)
+                             if entry.school_id == request.school_id])
     return answer_from_hits(hits, demo_mode)
 
 

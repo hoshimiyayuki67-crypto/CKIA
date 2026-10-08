@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../core/device_features.dart';
+import '../../core/local_store.dart';
+import '../../core/school.dart';
 
 import '../../core/app_theme.dart';
 import '../../core/reply_service.dart';
 import '../cards/action_card.dart';
+
+part 'chat_tools.dart';
 
 const _categories = ['资助', '教务', '财务', '学籍', '就业', '生活'];
 const _icons = [
@@ -16,8 +24,10 @@ const _questions = ['奖学金需要准备哪些材料？', '如何申请成绩�
   '在读证明怎么办理？', '毕业生档案如何转接？', '借阅图书需要什么材料？'];
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key, required this.service});
+  const ChatScreen({super.key, required this.service, this.store, this.device});
   final ReplyService service;
+  final LocalStore? store;
+  final DeviceFeatures? device;
   @override
   State<ChatScreen> createState() => _ChatScreenState();
 }
@@ -28,6 +38,20 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Json> _messages = [];
   String? _category;
   bool _sending = false;
+  bool _loading = false, _searchEnabled = false, _offline = false, _recognizing = false;
+  bool _storageHealthy = true;
+  School _school = schools.first;
+  final List<School> _customSchools = [];
+  final List<Json> _sessions = [], _saved = [], _reminders = [];
+  String _sessionId = DateTime.now().microsecondsSinceEpoch.toString();
+  final Map<String, List<int>> _checks = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loading = widget.store != null;
+    _restore();
+  }
 
   @override
   void dispose() {
@@ -38,28 +62,37 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _send([String? suggestion]) async {
     final question = (suggestion ?? _input.text).trim();
-    if (question.isEmpty || _sending) return;
+    if (question.isEmpty || _sending || _loading) return;
+    if (_offline) { _findOffline(question); return; }
+    final school = _school;
+    final category = _category;
+    final search = _searchEnabled;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
-      _messages.add({'user': true, 'message': question});
+      _messages.add({'user': true, 'message': question, 'school_id': school.id,
+          'search_enabled': search});
       _input.clear();
       _sending = true;
     });
     _scrollToEnd();
+    _persist();
     try {
-      final reply = await widget.service.ask(question, _category);
+      final reply = await widget.service.ask(question, category,
+          school: school, searchEnabled: search);
       if (!mounted) return;
-      setState(() => _messages.add(reply));
+      setState(() => _messages.add({...reply, 'school_id': school.id,
+          'saved_at': DateTime.now().toIso8601String()}));
     } catch (_) {
       if (!mounted) return;
       setState(() => _messages.add({
         'status': 'error',
         'message': '暂时无法完成查询，请稍后重试。当前没有获得可核实的答案。',
-        'retry_question': question, 'retry_category': _category,
+        'retry_question': question, 'retry_category': category,
       }));
     } finally {
       if (mounted) {
         setState(() => _sending = false);
+        _persist();
         _scrollToEnd();
       }
     }
@@ -76,6 +109,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_sending) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() { _messages.clear(); _input.clear(); _category = null; });
+    _sessionId = DateTime.now().microsecondsSinceEpoch.toString();
+    _persist();
   }
 
   @override
@@ -92,21 +127,26 @@ class _ChatScreenState extends State<ChatScreen> {
         ])),
       ]),
       actions: [
+        IconButton(tooltip: '本地资料与提醒', onPressed: _loading || _sending ? null : _library,
+            icon: const Icon(Icons.inventory_2_outlined, size: 22)),
         IconButton(tooltip: '新对话', onPressed: _sending ? null : _newChat,
             icon: const Icon(Icons.add_comment_outlined, size: 22)),
         IconButton(
           tooltip: '使用说明', icon: const Icon(Icons.info_outline_rounded, size: 22),
           onPressed: () => showAboutDialog(
-            context: context, applicationName: '校园万事通', applicationVersion: '0.3.0',
+            context: context, applicationName: '校园万事通', applicationVersion: '0.4.0',
             applicationIcon: const CampusMark(),
             children: const [Text('根据已审核资料提供办事信息，没有依据时明确告知。'
-                '请以学校职能部门答复为准。消息与材料勾选仅保存在当前会话。')],
+                '联网搜索仅在开关开启时发送问题到搜索引擎，并限定所选院校官网。'
+                '网络摘要未经人工审核，请核对原文。聊天、资料、勾选及提醒保存在本机，'
+                '可在资料页删除。拍照在手机上识别，确认发送的文字才会交给后端。')],
           ),
         ),
         const SizedBox(width: 8),
       ],
     ),
     body: SafeArea(top: false, child: Column(children: [
+      _queryControls(),
       Padding(padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Icon(widget.service.demoMode ? Icons.science_outlined : Icons.verified_user_outlined,
@@ -128,7 +168,8 @@ class _ChatScreenState extends State<ChatScreen> {
           ));
         }).toList(),
       )),
-      Expanded(child: _messages.isEmpty ? _welcome() : _conversation()),
+      Expanded(child: _loading ? const Center(child: CircularProgressIndicator())
+          : _messages.isEmpty ? _welcome() : _conversation()),
       _composer(),
     ])),
   );
@@ -244,7 +285,14 @@ class _ChatScreenState extends State<ChatScreen> {
                     style: TextStyle(fontSize: 14, height: 1.7,
                         color: user ? Colors.white : CampusColors.ink)),
                 if (item['status'] == 'card' && item['card'] is Map)
-                  ActionCardView(card: Map<String, dynamic>.from(item['card'] as Map)),
+                  _card(item),
+                for (final claim in item['analysis'] as List? ?? [])
+                  Padding(padding: const EdgeInsets.only(top: 12), child: Text(
+                    '${claim['text']}\n出处：${(claim['references'] as List).map((key) =>
+                        item['local_evidence']?[key]?['title'] ?? key).join('、')}',
+                    style: const TextStyle(fontSize: 12, height: 1.6))),
+                for (final source in item['web_sources'] as List? ?? [])
+                  _webSource(Map<String, dynamic>.from(source as Map)),
                 if (item['status'] == 'error') TextButton.icon(
                   onPressed: _sending ? null : () {
                     setState(() => _category = item['retry_category'] as String?);
@@ -269,6 +317,10 @@ class _ChatScreenState extends State<ChatScreen> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24),
             border: Border.all(color: CampusColors.line)),
         child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          IconButton(tooltip: '拍照或图片识别', onPressed: _sending || _recognizing || _loading
+              ? null : _photo, icon: _recognizing
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.document_scanner_outlined, size: 21)),
           Expanded(child: TextField(
             key: const Key('question-input'), controller: _input,
             minLines: 1, maxLines: 4, maxLength: 2000, enabled: !_sending,
@@ -281,7 +333,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Padding(padding: const EdgeInsets.only(bottom: 4), child: SizedBox(
             width: 44, height: 44,
             child: FilledButton(key: const Key('send-button'),
-              onPressed: _sending ? null : () => _send(),
+              onPressed: _sending || _loading ? null : () => _send(),
               style: FilledButton.styleFrom(padding: EdgeInsets.zero),
               child: const Tooltip(message: '发送', child: Icon(Icons.arrow_upward_rounded, size: 22)),
             ),
