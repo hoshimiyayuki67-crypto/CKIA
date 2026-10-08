@@ -1,11 +1,19 @@
 // Maven Central mirror hosted on Google Cloud Storage; keep upstream fallback.
 // Applies to the Flutter included build as well as the generated Android project.
 def centralMirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+def settingsOnly = false
 gradle.beforeSettings { settings ->
     settings.pluginManagement.repositories.maven { url = uri(centralMirror) }
     settings.pluginManagement.repositories.gradlePluginPortal()
+    settings.dependencyResolutionManagement.repositories.maven { url = uri(centralMirror) }
+}
+gradle.settingsEvaluated { settings ->
+    settingsOnly = settings.dependencyResolutionManagement.repositoriesMode.get() !=
+        org.gradle.api.initialization.resolve.RepositoriesMode.PREFER_PROJECT
 }
 gradle.beforeProject { project ->
     project.buildscript.repositories.maven { url = uri(centralMirror) }
-    project.repositories.maven { url = uri(centralMirror) }
+    if (!settingsOnly) {
+        project.repositories.maven { url = uri(centralMirror) }
+    }
 }
