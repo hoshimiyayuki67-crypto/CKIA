@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    paths: ['mobile/**', 'scripts/prepare_android.py', '.github/workflows/android.yml']
+    paths: ['mobile/**', 'scripts/prepare_android.py', 'infra/gradle-mirror.init.gradle', '.github/workflows/android.yml']
   pull_request:
-    paths: ['mobile/**', 'scripts/prepare_android.py', '.github/workflows/android.yml']
+    paths: ['mobile/**', 'scripts/prepare_android.py', 'infra/gradle-mirror.init.gradle', '.github/workflows/android.yml']
   workflow_dispatch:
     inputs:
       demo_mode:
@@ -51,6 +51,10 @@ jobs:
       - name: Resolve dependencies
         working-directory: mobile
         run: flutter pub get
+      - name: Configure Maven Central mirror
+        run: |
+          mkdir -p "$HOME/.gradle/init.d"
+          cp infra/gradle-mirror.init.gradle "$HOME/.gradle/init.d/campus-mirror.gradle"
       - name: Analyze
         working-directory: mobile
         run: flutter analyze
