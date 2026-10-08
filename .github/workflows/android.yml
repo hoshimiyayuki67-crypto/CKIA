@@ -3,6 +3,7 @@ name: Android APK
 on:
   push:
     branches: [main]
+    tags: ['v*']
     paths: ['mobile/**', 'scripts/prepare_android.py', '.github/workflows/android.yml']
   pull_request:
     paths: ['mobile/**', 'scripts/prepare_android.py', '.github/workflows/android.yml']
@@ -54,8 +55,19 @@ jobs:
         working-directory: mobile
         run: flutter analyze
       - name: Test native app
+        env:
+          UI_PREVIEW_FONT: /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
         working-directory: mobile
-        run: flutter test
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+          flutter test
+      - name: Upload UI previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-previews-${{ github.run_number }}
+          path: artifacts/ui-preview/
+          if-no-files-found: error
       - name: Build installable APK
         working-directory: mobile
         run: |
@@ -72,7 +84,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: campus-assistant-android-${{ github.run_number }}
-          path: artifacts/
+          path: |
+            artifacts/campus-assistant.apk
+            artifacts/SHA256SUMS.txt
           if-no-files-found: error
           retention-days: 30
       - name: Build summary
@@ -81,3 +95,26 @@ jobs:
           echo 'Download the campus-assistant-android artifact below and extract campus-assistant.apk.' >> "$GITHUB_STEP_SUMMARY"
           echo 'This preview APK uses Flutter template development signing.' >> "$GITHUB_STEP_SUMMARY"
           echo "Offline demo mode: $DEMO_MODE" >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: campus-assistant-android-${{ github.run_number }}
+          path: artifacts
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(sed -n 's/^version: \([^+]*\).*/\1/p' mobile/pubspec.yaml)"
+          test "$GITHUB_REF_NAME" = "v$VERSION"
+          cd artifacts
+          sha256sum --check SHA256SUMS.txt
+          cd ..
+          gh release create "$GITHUB_REF_NAME" artifacts/campus-assistant.apk artifacts/SHA256SUMS.txt --verify-tag --title "校园万事通 $GITHUB_REF_NAME" --notes-file .github/release-notes.md

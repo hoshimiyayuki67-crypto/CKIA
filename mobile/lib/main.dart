@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/app_theme.dart';
 import 'core/reply_service.dart';
 import 'features/chat/chat_screen.dart';
 
@@ -18,7 +19,7 @@ class CampusApp extends StatelessWidget {
     return MaterialApp(
       title: '校园万事通',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.teal),
+      theme: campusTheme(),
       home: ChatScreen(service: service),
     );
   }

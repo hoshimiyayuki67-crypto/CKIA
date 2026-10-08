@@ -8,7 +8,9 @@
 
 进入 GitHub 仓库 Actions，选择 Android APK，打开成功的运行，下载 `campus-assistant-android-<运行号>`，解压得到 `campus-assistant.apk` 和 SHA256SUMS.txt。构建产物保留 30 天。
 
-自动构建默认是离线演示模式，无后端也能安装体验；测试信息明确标为虚构。手动 Run workflow 可关闭 demo_mode 并提供 HTTPS api_base_url，连接后端实际查询。生产模型密钥始终留在服务端。
+main 和版本标签默认构建在线模式，连接已部署的 HTTPS 后端；PR 构建为明确标注的离线演示。手动 Run workflow 可选择 demo_mode 和 HTTPS api_base_url。模型密钥始终留在服务端。
+
+`v*` 标签触发同一套分析、测试与 APK 构建；成功后发布 GitHub Release，附 APK 和 SHA256SUMS.txt。标签版本必须与 pubspec.yaml 一致。UI 测试导出首页、对话与小屏幕截图至独立 ui-previews Artifact，发布前进行目视检查。
 
 当前 APK 使用 Flutter 模板开发签名，可用于安装测试；正式发布前配置团队固定签名。不同 CI 运行的开发签名可能不同，覆盖安装失败时需要卸载旧测试版（会清空本地状态）。
 
