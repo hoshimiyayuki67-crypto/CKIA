@@ -1,0 +1,29 @@
+name: campus-assistant
+
+services:
+  api:
+    image: campus-assistant-api:${CAMPUS_IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      CAMPUS_DEMO: "0"
+      CAMPUS_KNOWLEDGE_DIR: /app/knowledge/processed
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ../knowledge/processed:/app/knowledge/processed:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

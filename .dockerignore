@@ -1,0 +1,15 @@
+**
+!backend/
+!backend/requirements-runtime.lock.txt
+!backend/src/
+!backend/src/**
+!backend/examples/
+!backend/examples/**
+!web/
+!web/**
+!infra/
+!infra/Dockerfile
+**/__pycache__/**
+**/*.pyc
+**/.env
+**/.smoke-*

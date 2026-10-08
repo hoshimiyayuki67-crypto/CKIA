@@ -1,0 +1,7 @@
+{$CAMPUS_DOMAIN} {
+    encode gzip
+    request_body {
+        max_size 1MB
+    }
+    reverse_proxy api:8000
+}
