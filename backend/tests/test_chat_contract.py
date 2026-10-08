@@ -1,8 +1,8 @@
 from fastapi.testclient import TestClient
 
-from campus_assistant.main import app
+from campus_assistant.main import create_app
 
-client = TestClient(app)
+client = TestClient(create_app())
 
 
 def test_no_knowledge_cannot_invent_card_or_sources():

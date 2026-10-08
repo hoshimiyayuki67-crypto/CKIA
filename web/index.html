@@ -4,15 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>校园万事通</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 0; background: #f4f8f7; color: #173d36; }
-    main { max-width: 640px; margin: 40px auto; padding: 24px; }
-    article { background: white; padding: 24px; border-radius: 16px; }
-  </style>
+  <link rel="stylesheet" href="/web/style.css">
+  <script defer src="/web/app.js"></script>
 </head>
 <body>
-  <main><h1>校园万事通</h1><article><h2>H5 开发入口</h2>
-    <p>知识库与客户端桥接尚未接入，暂无法核实学校办事规定。</p>
-  </article></main>
+  <main>
+    <header><span class="brand">校园万事通</span><span class="tag">开发预览</span></header>
+    <p id="notice" role="status">正在检查资料状态…</p>
+    <nav aria-label="事务类别"><label for="category">关注事项</label>
+      <select id="category"><option value="">全部</option><option>资助</option><option>教务</option><option>财务</option><option>学籍</option><option>就业</option><option>生活</option></select>
+    </nav>
+    <section id="messages" aria-live="polite" aria-label="对话记录">
+      <article class="message assistant"><p>想了解什么校园事务？我会依据已审核资料整理办事信息，找不到依据时会明确告诉你。</p></article>
+    </section>
+    <form id="chat-form"><label class="sr-only" for="question">输入问题</label>
+      <textarea id="question" rows="2" maxlength="2000" placeholder="例如：成绩复核需要哪些材料？" required></textarea>
+      <button id="send" type="submit">发送</button>
+    </form>
+    <footer>AI 辅助整理 · 请以学校职能部门答复为准</footer>
+  </main>
 </body>
 </html>

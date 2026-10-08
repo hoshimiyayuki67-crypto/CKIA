@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Category = Literal["资助", "教务", "财务", "学籍", "就业", "生活"]
 
@@ -21,16 +21,18 @@ class ChatRequest(BaseModel):
 
 
 class Source(BaseModel):
-    title: str
-    issuer: str
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(min_length=1)
+    issuer: str = Field(min_length=1)
     date: date
-    doc_id: str
-    chunk_id: str
+    doc_id: str = Field(min_length=1)
+    chunk_id: str = Field(min_length=1)
     url: str | None = None
 
 
 class Material(BaseModel):
-    item: str
+    model_config = ConfigDict(extra="forbid")
+    item: str = Field(min_length=1)
     required: bool
     note: str | None = None
 
@@ -50,8 +52,18 @@ class ActionCard(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    status: Literal["refusal"] = "refusal"
+    status: Literal["refusal", "card", "clarification"] = "refusal"
     message: str
-    card: None = None
-    sources: list[Source] = Field(default_factory=list, max_length=0)
+    card: ActionCard | None = None
+    sources: list[Source] = Field(default_factory=list)
     ai_generated: bool = True
+    demo_mode: bool = False
+
+    @model_validator(mode="after")
+    def enforce_evidence(self):
+        if self.status == "card":
+            if self.card is None or self.sources != self.card.sources:
+                raise ValueError("卡片必须绑定同一组真实检索出处")
+        elif self.card is not None or self.sources:
+            raise ValueError("拒答/澄清不得携带办理卡片或出处")
+        return self

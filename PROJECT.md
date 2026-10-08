@@ -32,6 +32,8 @@ development/               架构、流程、任务清单
 2. 在项目根目录执行 `powershell -ExecutionPolicy Bypass -File scripts/check-environment.ps1`。
 3. 按后端、客户端各自说明安装依赖、启动与验证。
 
-当前提供的是开发骨架：后端健康检查与安全拒答接口、Flutter 入口和 H5 占位页。尚未连接模型、知识库、推送或校内数据；不能用于实际办事判断。
+已安装后端依赖时，可从根目录执行 `powershell -ExecutionPolicy Bypass -File scripts/start-dev.ps1 -Demo`，访问 http://127.0.0.1:8000/ 演示卡片。省略 -Demo 使用正式资料目录，没有已审核资料时拒答。
+
+当前已实现首轮本地预览：人工结构化知识记录加载、事项别名检索、来源与字段校验、卡片/拒答/澄清响应，以及 H5 对话和材料勾选。启动方式见 backend/DEVELOPMENT.md。可显式开启虚构演示模式跑通链路；正式模式尚无审核通过的学校资料，不用于实际办事判断。模型混合检索、Flutter 真机、截图和推送仍待开发。
 
 仓库中原有 `app/`、`android/` 等文件处于删除状态，本次未恢复；新代码放入独立目录，便于审阅迁移。设计文档保持原样。

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><title>H5 browser smoke</title>
+<style>body { margin: 0; } iframe { width: 100%; height: 920px; border: 0; }</style>
+<output id="result">RUNNING</output><iframe src="/" title="校园万事通预览"></iframe>
+<script>
+const frame = document.querySelector('iframe');
+const result = document.querySelector('#result');
+const pause = () => new Promise(resolve => setTimeout(resolve, 25));
+async function waitFor(predicate) {
+  for (let i = 0; i < 500; i++) { if (predicate()) return; await pause(); }
+  throw new Error('wait timeout');
+}
+frame.addEventListener('load', async () => {
+  try {
+    const doc = frame.contentDocument;
+    const errors = [];
+    frame.contentWindow.addEventListener('error', event => errors.push(event.message));
+    const check = (condition, label) => { if (!condition) throw new Error(label); };
+    await waitFor(() => doc.querySelector('#notice').textContent.includes('虚构测试数据'));
+    async function submit(text) {
+      const count = doc.querySelectorAll('.assistant').length;
+      doc.querySelector('#question').value = text;
+      doc.querySelector('#chat-form').requestSubmit();
+      await waitFor(() => doc.querySelectorAll('.assistant').length === count + 1 && !doc.querySelector('#send').disabled);
+    }
+    await submit('测试馆借阅需要什么材料？');
+    check(doc.querySelector('h2').textContent === '测试馆借阅', 'card title');
+    check(doc.querySelector('.source').textContent.includes('虚构测试馆借阅流程'), 'source');
+    const checkbox = doc.querySelector('input[type=checkbox]');
+    checkbox.click();
+    check(checkbox.checked, 'checklist');
+    doc.querySelector('#category').value = '教务';
+    await submit('测试借书');
+    check([...doc.querySelectorAll('.assistant')].at(-1).textContent.includes('未查询到'), 'category refusal');
+    await submit('<img src=x onerror="alert(1)">');
+    check([...doc.querySelectorAll('.user')].at(-1).textContent.includes('<img'), 'literal input');
+    check(doc.querySelectorAll('img').length === 0, 'no injected element');
+    check(errors.length === 0, 'no script errors');
+    frame.contentWindow.scrollTo(0, 0);
+    result.textContent = 'PASS';
+  } catch (error) { result.textContent = `FAIL: ${error.message}`; }
+  finally {
+    await fetch('/_browser_result', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: result.textContent})});
+  }
+});
+</script></html>

@@ -1,8 +1,11 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "Material": {
+      "additionalProperties": false,
       "properties": {
         "item": {
+          "minLength": 1,
           "title": "Item",
           "type": "string"
         },
@@ -31,12 +34,15 @@
       "type": "object"
     },
     "Source": {
+      "additionalProperties": false,
       "properties": {
         "title": {
+          "minLength": 1,
           "title": "Title",
           "type": "string"
         },
         "issuer": {
+          "minLength": 1,
           "title": "Issuer",
           "type": "string"
         },
@@ -46,10 +52,12 @@
           "type": "string"
         },
         "doc_id": {
+          "minLength": 1,
           "title": "Doc Id",
           "type": "string"
         },
         "chunk_id": {
+          "minLength": 1,
           "title": "Chunk Id",
           "type": "string"
         },
@@ -161,6 +169,5 @@
     "confidence"
   ],
   "title": "ActionCard",
-  "type": "object",
-  "$schema": "https://json-schema.org/draft/2020-12/schema"
+  "type": "object"
 }

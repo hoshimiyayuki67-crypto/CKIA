@@ -1,0 +1,8 @@
+{
+  "source": {"title": "虚构测试馆借阅流程（非校内规定）", "issuer": "测试机构", "date": "2026-01-01", "doc_id": "demo-library", "chunk_id": "demo-library-1", "url": null},
+  "category": "生活", "layer": "official", "version": "demo-1", "reviewed": true,
+  "valid_until": null,
+  "chunk_text": "本片段仅用于软件测试，不是真实学校规定。测试馆借阅：适用对象为测试用户；材料为测试借阅卡；办理地点为测试馆服务台；办公时间为测试时段；办理方式为线下测试；咨询渠道为测试服务台。",
+  "aliases": ["测试馆借阅", "测试借书"],
+  "fields": {"matter_name": "测试馆借阅", "target_users": ["测试用户"], "materials": [{"item": "测试借阅卡", "required": true}], "location": "测试馆服务台", "office_hours": "测试时段", "deadline": null, "channel": "线下测试", "contact": "测试服务台", "notes": ["本片段仅用于软件测试，不是真实学校规定。"]}
+}

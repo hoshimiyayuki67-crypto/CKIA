@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "CardFields": {
+      "additionalProperties": false,
+      "properties": {
+        "matter_name": {
+          "minLength": 1,
+          "title": "Matter Name",
+          "type": "string"
+        },
+        "target_users": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Users",
+          "type": "array"
+        },
+        "materials": {
+          "items": {
+            "$ref": "#/$defs/Material"
+          },
+          "minItems": 1,
+          "title": "Materials",
+          "type": "array"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "office_hours": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Office Hours"
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channel"
+        },
+        "contact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "matter_name",
+        "target_users",
+        "materials"
+      ],
+      "title": "CardFields",
+      "type": "object"
+    },
+    "Material": {
+      "additionalProperties": false,
+      "properties": {
+        "item": {
+          "minLength": 1,
+          "title": "Item",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "item",
+        "required"
+      ],
+      "title": "Material",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "issuer": {
+          "minLength": 1,
+          "title": "Issuer",
+          "type": "string"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "doc_id": {
+          "minLength": 1,
+          "title": "Doc Id",
+          "type": "string"
+        },
+        "chunk_id": {
+          "minLength": 1,
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "title",
+        "issuer",
+        "date",
+        "doc_id",
+        "chunk_id"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "人工结构化记录；可执行字段必须逐字出现在对应片段中。",
+  "properties": {
+    "source": {
+      "$ref": "#/$defs/Source"
+    },
+    "category": {
+      "enum": [
+        "资助",
+        "教务",
+        "财务",
+        "学籍",
+        "就业",
+        "生活"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "layer": {
+      "enum": [
+        "official",
+        "experience"
+      ],
+      "title": "Layer",
+      "type": "string"
+    },
+    "version": {
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    },
+    "reviewed": {
+      "default": false,
+      "title": "Reviewed",
+      "type": "boolean"
+    },
+    "valid_until": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid Until"
+    },
+    "chunk_text": {
+      "minLength": 1,
+      "title": "Chunk Text",
+      "type": "string"
+    },
+    "aliases": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Aliases",
+      "type": "array"
+    },
+    "fields": {
+      "$ref": "#/$defs/CardFields"
+    }
+  },
+  "required": [
+    "source",
+    "category",
+    "layer",
+    "version",
+    "chunk_text",
+    "aliases",
+    "fields"
+  ],
+  "title": "KnowledgeEntry",
+  "type": "object"
+}

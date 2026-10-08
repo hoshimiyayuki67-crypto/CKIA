@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ActionCard": {
+      "properties": {
+        "matter_name": {
+          "title": "Matter Name",
+          "type": "string"
+        },
+        "target_users": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Users",
+          "type": "array"
+        },
+        "materials": {
+          "items": {
+            "$ref": "#/$defs/Material"
+          },
+          "minItems": 1,
+          "title": "Materials",
+          "type": "array"
+        },
+        "location": {
+          "title": "Location",
+          "type": "string"
+        },
+        "office_hours": {
+          "title": "Office Hours",
+          "type": "string"
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        },
+        "channel": {
+          "title": "Channel",
+          "type": "string"
+        },
+        "contact": {
+          "title": "Contact",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "matter_name",
+        "target_users",
+        "materials",
+        "location",
+        "office_hours",
+        "channel",
+        "contact",
+        "sources",
+        "confidence"
+      ],
+      "title": "ActionCard",
+      "type": "object"
+    },
+    "Material": {
+      "additionalProperties": false,
+      "properties": {
+        "item": {
+          "minLength": 1,
+          "title": "Item",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "item",
+        "required"
+      ],
+      "title": "Material",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "issuer": {
+          "minLength": 1,
+          "title": "Issuer",
+          "type": "string"
+        },
+        "date": {
+          "format": "date",
+          "title": "Date",
+          "type": "string"
+        },
+        "doc_id": {
+          "minLength": 1,
+          "title": "Doc Id",
+          "type": "string"
+        },
+        "chunk_id": {
+          "minLength": 1,
+          "title": "Chunk Id",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "title",
+        "issuer",
+        "date",
+        "doc_id",
+        "chunk_id"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "status": {
+      "default": "refusal",
+      "enum": [
+        "refusal",
+        "card",
+        "clarification"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "message": {
+      "title": "Message",
+      "type": "string"
+    },
+    "card": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActionCard"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "ai_generated": {
+      "default": true,
+      "title": "Ai Generated",
+      "type": "boolean"
+    },
+    "demo_mode": {
+      "default": false,
+      "title": "Demo Mode",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "message"
+  ],
+  "title": "ChatResponse",
+  "type": "object"
+}
