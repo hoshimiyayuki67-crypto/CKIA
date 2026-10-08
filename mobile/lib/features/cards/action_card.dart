@@ -17,7 +17,14 @@ class ActionCardView extends StatefulWidget {
 
 class _ActionCardViewState extends State<ActionCardView> {
   final Set<int> _checked = {};
-  Set<int> get checked => widget.checked?.toSet() ?? _checked;
+  Set<int> get checked => _checked;
+  @override
+  void initState() { super.initState(); _checked.addAll(widget.checked ?? []); }
+  @override
+  void didUpdateWidget(covariant ActionCardView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.checked != null) { _checked.clear(); _checked.addAll(widget.checked!); }
+  }
   String field(String name) => widget.card[name] as String? ?? '未查到明确信息';
 
   @override
@@ -65,7 +72,7 @@ class _ActionCardViewState extends State<ActionCardView> {
               activeColor: CampusColors.green,
               value: checked.contains(i),
               onChanged: (value) => setState(() {
-                final next = checked;
+                final next = Set<int>.from(checked);
                 if (value == true) { next.add(i); } else { next.remove(i); }
                 _checked.clear(); _checked.addAll(next);
                 widget.onChecked?.call(next.toList()..sort());

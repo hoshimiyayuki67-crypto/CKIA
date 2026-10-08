@@ -60,6 +60,10 @@ extension _ChatTools on _ChatScreenState {
         'updated_at': DateTime.now().toIso8601String(), 'messages': List<Json>.from(_messages)});
     }
     if (_sessions.length > 20) _sessions.removeRange(20, _sessions.length);
+    final liveCards = [..._saved, ..._sessions.expand((session) =>
+        (session['messages'] as List).map((item) => Map<String, dynamic>.from(item as Map)))];
+    final liveKeys = liveCards.where((item) => item['card'] is Map).map(_cardKey).toSet();
+    _checks.removeWhere((key, _) => !liveKeys.contains(key));
     try {
       await widget.store!.write({'version': 1, 'current_session': _sessionId,
         'school_id': _school.id, 'custom_schools': _customSchools.map((value) => value.toJson()).toList(),
@@ -280,7 +284,7 @@ extension _ChatTools on _ChatScreenState {
     await Future<void>.delayed(const Duration(milliseconds: 250)); title.dispose();
     if (confirmed != true || !mounted) return;
     if (widget.device == null) { _notice('请在安卓 APK 中设置系统提醒'); return; }
-    final id = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final id = DateTime.now().millisecondsSinceEpoch % 2147483647;
     try {
       await widget.device!.schedule(id, text, when!);
       if (!mounted) return;

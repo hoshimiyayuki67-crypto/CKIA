@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from test_deepseek import entry
 
 from campus_assistant.intelligence.deepseek import DeepSeek
-from campus_assistant.intelligence.web_search import WebSearch, official_url
+from campus_assistant.intelligence.web_search import TavilySearch, WebSearch, official_url
 from campus_assistant.main import create_app
 from campus_assistant.repositories.knowledge import KnowledgeRepository
 
@@ -102,3 +102,25 @@ def test_custom_school_validation_and_registry_cannot_be_overridden():
     assert len(client.get('/api/v1/schools').json()) == 4
     assert not official_url('https://imuchuangye.cn@evil.test', 'imuchuangye.cn')
     assert not official_url('https://imuchuangye.cn:22', 'imuchuangye.cn')
+
+
+def test_tavily_requires_key_and_filters_results_again_on_server():
+    observed = []
+    def handle(request):
+        observed.append(json.loads(request.content))
+        assert request.url == 'https://api.tavily.com/search'
+        assert request.headers['authorization'] == 'Bearer test-search-only'
+        return httpx.Response(200, json={'results': [
+            {'title': '本校', 'url': 'https://imuchuangye.cn/notice', 'content': '提交学生证'},
+            {'title': '他校', 'url': 'https://pku.edu.cn/notice', 'content': '其他材料'},
+        ]})
+    search = TavilySearch('test-search-only', httpx.MockTransport(handle))
+    client = TestClient(create_app(search=search))
+    data = client.post('/api/v1/chat', json={'question': '材料', 'search_enabled': True}).json()
+    assert observed[0]['include_domains'] == ['imuchuangye.cn']
+    assert observed[0]['include_answer'] is False
+    assert len(data['web_sources']) == 1 and data['search_status'] == 'used'
+    assert not data['card']
+    client = TestClient(create_app(search=TavilySearch('')))
+    data = client.post('/api/v1/chat', json={'question': '材料', 'search_enabled': True}).json()
+    assert data['search_status'] == 'unavailable' and not data['web_sources']

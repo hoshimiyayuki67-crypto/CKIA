@@ -16,6 +16,7 @@ services:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
     ports:
       - "127.0.0.1:8000:8000"
     volumes:

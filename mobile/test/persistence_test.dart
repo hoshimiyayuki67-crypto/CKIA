@@ -31,7 +31,7 @@ void main() {
       await File('${directory.path}/campus-state.json').writeAsString('{broken');
       expect((await store.read())['sessions'], [1]);
       await File('${directory.path}/campus-state.json.bak').writeAsString('{broken');
-      expect(store.read(), throwsFormatException);
+      await expectLater(store.read(), throwsFormatException);
     } finally { await directory.delete(recursive: true); }
   });
 

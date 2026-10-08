@@ -36,6 +36,9 @@ async def add_search(response: ChatResponse, request, repository, today: date, m
                                        if reference(entry) in cited}
             response.ai_status = "used"
             response.ai_model = model.model
+            if response.analysis and response.card is None:
+                response.status = "clarification"
+                response.message = "本地审核资料尚不能给出完整办事清单，以下为所选院校的相关证据。"
         except ModelUnavailable:
             response.ai_status = "unavailable"
     response.message += (

@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from campus_assistant.api.chat import router
 from campus_assistant.intelligence.deepseek import DeepSeek
-from campus_assistant.intelligence.web_search import WebSearch
+from campus_assistant.intelligence.web_search import TavilySearch, WebSearch
 from campus_assistant.repositories.knowledge import KnowledgeRepository
 from campus_assistant.services.ai_answer import CallLimit
 
@@ -20,7 +20,7 @@ def create_app(
     model: DeepSeek | None = None,
     search: WebSearch | None = None,
 ) -> FastAPI:
-    application = FastAPI(title="校园万事通", version="0.2.0")
+    application = FastAPI(title="校园万事通", version="0.4.0")
     application.state.knowledge = repository if repository is not None else KnowledgeRepository()
     application.state.demo_mode = demo_mode
     application.state.model = model
@@ -36,7 +36,10 @@ def create_app(
             "demo_mode": demo_mode,
             "ai_status": "configured" if model else "disabled",
             "ai_model": model.model if model else None,
-            "search_provider": "bing-rss",
+            "search_provider": "tavily" if isinstance(application.state.search, TavilySearch)
+                               else "bing-rss-best-effort",
+            "search_status": "configured" if getattr(application.state.search, "_key", "")
+                             else "not_configured",
         }
 
     if (PROJECT / "web").is_dir():
@@ -57,4 +60,5 @@ if "CAMPUS_KNOWLEDGE_DIR" in os.environ and not directory.is_dir():
     raise ValueError("CAMPUS_KNOWLEDGE_DIR 目录不存在")
 app = create_app(
     KnowledgeRepository.load(directory), demo_mode=demo, model=DeepSeek.from_environment(),
+    search=WebSearch.from_environment(),
 )

@@ -69,7 +69,7 @@ void main() {
     await capture('conversation');
     await tester.tap(find.byTooltip('新对话'));
     await tester.pumpAndSettle();
-    expect(find.text('从一件小事开始'), findsOneWidget);
+    expect(find.text('办事有方向，\n校园更轻松。'), findsOneWidget);
     tester.view.physicalSize = const Size(320, 640);
     await tester.pumpAndSettle();
     await capture('compact');
@@ -105,6 +105,6 @@ void main() {
     await tester.tap(find.byTooltip('新对话'));
     await tester.pumpAndSettle();
     expect(find.text('办理证明'), findsNothing);
-    expect(find.text('从一件小事开始'), findsOneWidget);
+    expect(find.text('办事有方向，\n校园更轻松。'), findsOneWidget);
   });
 }

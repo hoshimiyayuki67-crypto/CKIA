@@ -22,6 +22,7 @@ class FileStore implements LocalStore {
   FileStore({this.directory});
   final Future<Directory> Function()? directory;
   Future<void> _pending = Future.value();
+  bool _preserveBackup = false;
   Future<File> _file() async {
     final dir = await (directory?.call() ?? getApplicationSupportDirectory());
     await dir.create(recursive: true);
@@ -37,11 +38,14 @@ class FileStore implements LocalStore {
         if (await candidate.exists()) {
           final data = jsonDecode(await candidate.readAsString()) as Json;
           if (data['version'] != 1) throw const FormatException('不支持的本地数据版本');
+          _preserveBackup = path != file.path;
           return data;
         }
       } on FormatException { continue; }
     }
-    if (await file.exists()) throw const FormatException('本地记录损坏，未覆盖原文件');
+    if (await file.exists() || await File('${file.path}.bak').exists()) {
+      throw const FormatException('本地记录损坏，未覆盖原文件');
+    }
     return {};
   }
 
@@ -52,8 +56,9 @@ class FileStore implements LocalStore {
       final file = await _file();
       final temp = File('${file.path}.tmp');
       await temp.writeAsString(text, flush: true);
-      if (await file.exists()) await file.copy('${file.path}.bak');
+      if (!_preserveBackup && await file.exists()) await file.copy('${file.path}.bak');
       await temp.rename(file.path);
+      _preserveBackup = false;
     });
     _pending = next.catchError((Object _) {});
     return next;
