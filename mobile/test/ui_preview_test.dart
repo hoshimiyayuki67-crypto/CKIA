@@ -63,6 +63,19 @@ void main() {
     tester.view.physicalSize = const Size(320, 640);
     await tester.pumpAndSettle();
     await capture('compact');
+    tester.view.physicalSize = const Size(390, 1100);
+    final fixture = File('assets/demo-library.json').readAsStringSync();
+    await tester.pumpWidget(RepaintBoundary(key: boundaryKey,
+        child: CampusApp(service: DemoReplyService(loadRecord: () async => fixture))));
+    await tester.enterText(find.byKey(const Key('question-input')), '测试借书');
+    await tester.tap(find.byKey(const Key('send-button')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, 900));
+    await tester.pumpAndSettle();
+    await capture('action-card');
+    await tester.tap(find.byTooltip('新对话'));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(320, 640);
     tester.view.viewInsets = const FakeViewPadding(bottom: 260);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();

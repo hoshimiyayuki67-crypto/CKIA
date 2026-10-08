@@ -19,7 +19,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('测试馆借阅'), findsOneWidget);
     final checkbox = find.byKey(const Key('material-0'));
-    await tester.ensureVisible(checkbox);
+    await Scrollable.ensureVisible(tester.element(checkbox), alignment: 0.5);
+    await tester.pumpAndSettle();
     await tester.tap(checkbox);
     await tester.pumpAndSettle();
     expect(tester.widget<CheckboxListTile>(checkbox).value, isTrue);
