@@ -77,4 +77,21 @@ dependencies {
 }
 '''
 gradle.write_text(content, encoding="utf-8")
+rules = gradle.parent / "campus-proguard-rules.pro"
+rules.write_text('''# The OCR plugin references optional scripts; this app only calls Chinese.
+-dontwarn com.google.mlkit.vision.text.devanagari.**
+-dontwarn com.google.mlkit.vision.text.japanese.**
+-dontwarn com.google.mlkit.vision.text.korean.**
+''', encoding="utf-8")
+if "campus-proguard-rules.pro" not in content:
+    content += '''
+android {
+    buildTypes {
+        getByName("release") {
+            proguardFiles("campus-proguard-rules.pro")
+        }
+    }
+}
+'''
+    gradle.write_text(content, encoding="utf-8")
 print("Android configured: offline Chinese OCR, local reminders, private storage")
