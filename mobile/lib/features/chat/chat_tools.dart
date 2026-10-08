@@ -357,6 +357,6 @@ extension _ChatTools on _ChatScreenState {
               if (!mounted || !pageContext.mounted) return;
               setState(() => _reminders.remove(reminder)); update(() {}); _persist();
             })),
-        ])))));
+        ]))))));
   }
 }
