@@ -30,8 +30,16 @@ void main() {
     final fontPath = Platform.environment['UI_PREVIEW_FONT'];
     if (fontPath != null) {
       final bytes = File(fontPath).readAsBytesSync();
-      final loader = FontLoader('CampusSans')..addFont(Future.value(bytes.buffer.asByteData()));
-      await tester.runAsync(loader.load);
+      for (final family in ['CampusSans', 'Roboto']) {
+        final loader = FontLoader(family)..addFont(Future.value(bytes.buffer.asByteData()));
+        await tester.runAsync(loader.load);
+      }
+      final root = Platform.environment['FLUTTER_ROOT']!;
+      final icons = File('$root/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf')
+          .readAsBytesSync();
+      final iconLoader = FontLoader('MaterialIcons')
+        ..addFont(Future.value(icons.buffer.asByteData()));
+      await tester.runAsync(iconLoader.load);
     }
     final boundaryKey = GlobalKey();
     Future<void> capture(String name) async {
