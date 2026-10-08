@@ -212,6 +212,7 @@ extension _ChatTools on _ChatScreenState {
     setState(() => _recognizing = true);
     try {
       final text = await widget.device!.recognize(camera: camera);
+      if (mounted) setState(() => _recognizing = false);
       if (mounted && text != null) await _reviewText(text);
     } catch (_) { _notice('识别失败，请检查相机权限或选择更清晰的图片'); }
     finally { if (mounted) setState(() => _recognizing = false); }
