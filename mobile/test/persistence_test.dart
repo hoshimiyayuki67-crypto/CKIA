@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:campus_assistant/core/local_store.dart';
+import 'package:campus_assistant/core/device_features.dart';
 import 'package:campus_assistant/core/reply_service.dart';
 import 'package:campus_assistant/core/school.dart';
 import 'package:campus_assistant/main.dart';
@@ -19,6 +20,13 @@ class RecordingService implements ReplyService {
     calls++; selected = school; search = searchEnabled;
     return {'status': 'refusal', 'message': '已保存的测试通知'};
   }
+}
+
+class FakeDevice extends DeviceFeatures {
+  @override
+  Future<String?> recoverPhoto() async => null;
+  @override
+  Future<String?> recognize({required bool camera}) async => '通知要求提交学生证';
 }
 
 void main() {
@@ -72,5 +80,21 @@ void main() {
     await tester.tap(find.byKey(const Key('send-button'))); await tester.pumpAndSettle();
     expect(service.calls, 1); expect(find.text('离线查询结果'), findsOneWidget);
     expect(find.text('已保存的测试通知'), findsOneWidget);
+  });
+
+  testWidgets('photo text is editable and never automatically sent', (tester) async {
+    final service = RecordingService();
+    await tester.pumpWidget(CampusApp(service: service, device: FakeDevice()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('拍照或图片识别')); await tester.pumpAndSettle();
+    await tester.tap(find.text('选择图片')); await tester.pumpAndSettle();
+    expect(find.text('核对识别文字'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, '请分析通知中的材料');
+    await tester.tap(find.text('填入问题')); await tester.pumpAndSettle();
+    expect(service.calls, 0);
+    expect(tester.widget<TextField>(find.byKey(const Key('question-input'))).controller!.text,
+        '请分析通知中的材料');
+    await tester.tap(find.byKey(const Key('send-button'))); await tester.pumpAndSettle();
+    expect(service.calls, 1);
   });
 }

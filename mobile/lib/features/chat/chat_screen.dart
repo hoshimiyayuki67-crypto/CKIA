@@ -118,10 +118,11 @@ class _ChatScreenState extends State<ChatScreen> {
     appBar: AppBar(
       titleSpacing: 20,
       title: Row(children: [
-        const CampusMark(),
-        const SizedBox(width: 12),
+        CampusMark(size: MediaQuery.sizeOf(context).width < 360 ? 30 : 44),
+        SizedBox(width: MediaQuery.sizeOf(context).width < 360 ? 8 : 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('校园万事通', style: Theme.of(context).textTheme.titleLarge),
+          Text('校园万事通', style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: MediaQuery.sizeOf(context).width < 360 ? 16 : 20)),
           const Text('你的校园办事助手',
               style: TextStyle(fontSize: 11, color: CampusColors.muted, height: 1.7)),
         ])),
@@ -293,6 +294,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     style: const TextStyle(fontSize: 12, height: 1.6))),
                 for (final source in item['web_sources'] as List? ?? [])
                   _webSource(Map<String, dynamic>.from(source as Map)),
+                for (final entry in (item['local_evidence'] as Map? ?? {}).entries)
+                  _webSource({...Map<String, dynamic>.from(entry.value as Map),
+                    'id': entry.key, 'verified': true, 'snippet': '',
+                    'retrieved_at': entry.value['date']}),
                 if (item['status'] == 'error') TextButton.icon(
                   onPressed: _sending ? null : () {
                     setState(() => _category = item['retry_category'] as String?);

@@ -179,11 +179,12 @@ extension _ChatTools on _ChatScreenState {
 
   Widget _webSource(Json source) => Padding(padding: const EdgeInsets.only(top: 12),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('${source['id']} · 官网搜索摘要 · 未审核',
+      Text(source['verified'] == true ? '本地审核资料' : '${source['id']} · 官网搜索摘要 · 未审核',
           style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
       Text(source['title'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
       Text(source['snippet'] as String? ?? '', style: const TextStyle(fontSize: 12, height: 1.6)),
-      Text('检索于 ${source['retrieved_at'] ?? ''}', style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
+      Text('${source['verified'] == true ? '发布于' : '检索于'} ${source['retrieved_at'] ?? ''}',
+          style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
       Wrap(children: [
         TextButton.icon(onPressed: () async {
           final uri = Uri.tryParse(source['url'] as String? ?? '');
@@ -234,8 +235,11 @@ extension _ChatTools on _ChatScreenState {
     final records = [..._saved, ..._sessions.where((value) => value['school']['id'] == _school.id)
         .expand((value) => (value['messages'] as List).map((item) => Map<String, dynamic>.from(item as Map)))];
     final terms = question.toLowerCase().split(RegExp(r'\s+')).where((value) => value.isNotEmpty);
+    final seen = <String>{};
     final hits = records.where((value) => value['user'] != true && value['school_id'] == _school.id &&
-        terms.every((term) => '${value['message']} ${value['card'] ?? ''}'.toLowerCase().contains(term))).take(10).toList();
+        terms.every((term) => '${value['message']} ${value['card'] ?? ''}'.toLowerCase().contains(term)) &&
+        seen.add(value['card'] is Map ? _cardKey(value) : '${value['saved_at']}|${value['message']}'))
+        .take(10).toList();
     _showPage('离线查询结果', hits.isEmpty ? [const Text('未找到已保存的匹配内容。可输入事项关键词，或关闭离线模式查询最新资料。')]
         : [const Text('仅查询本机已保存的内容，可能过期，不代表现行学校规定。'),
           for (final hit in hits) _savedItem(hit)]);
@@ -245,8 +249,13 @@ extension _ChatTools on _ChatScreenState {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('保存于 ${item['saved_at'] ?? '历史记录'}', style: const TextStyle(fontSize: 11, color: CampusColors.muted)),
       Text(item['message'] as String? ?? ''),
+      for (final claim in item['analysis'] as List? ?? [])
+        Padding(padding: const EdgeInsets.only(top: 8), child: Text('${claim['text']}\n出处：${(claim['references'] as List).join('、')}')),
       if (item['card'] is Map) _card(item),
       for (final source in item['web_sources'] as List? ?? []) _webSource(Map<String, dynamic>.from(source as Map)),
+      for (final entry in (item['local_evidence'] as Map? ?? {}).entries)
+        _webSource({...Map<String, dynamic>.from(entry.value as Map), 'id': entry.key,
+          'verified': true, 'snippet': '', 'retrieved_at': entry.value['date']}),
     ])));
 
   void _showPage(String title, List<Widget> children) {
