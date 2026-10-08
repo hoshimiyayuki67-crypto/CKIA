@@ -1,0 +1,46 @@
+name: Sync release notes
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/release-notes.md', '.github/workflows/release-notes.yml']
+  workflow_run:
+    workflows: ['Android APK']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-notes
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       startsWith(github.event.workflow_run.head_branch, 'v'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Update current release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMPLETED_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          VERSION="$(sed -n 's/^version: \([^+]*\).*/\1/p' mobile/pubspec.yaml)"
+          TAG="v$VERSION"
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ] && [ "$COMPLETED_TAG" != "$TAG" ]; then
+            echo 'Completed build belongs to an older version; skipping.'
+            exit 0
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file .github/release-notes.md
+          else
+            echo 'Release is not published yet; notes will sync after its build completes.'
+          fi

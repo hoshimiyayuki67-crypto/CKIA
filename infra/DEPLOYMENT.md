@@ -16,7 +16,7 @@
 
 模型密钥只保存在服务器权限 0600 的 `infra/.env`，由 Compose 注入后端容器。现有在线 APK 直接连接新版后端；v0.4 搜索开关、院校选择等新入口需要新版 APK。调用限额及故障降级见 [后端开发](../backend/DEVELOPMENT.md)。本地 40 项后端测试和 Backend container 工作流均通过。
 
-已部署 Tavily 院校官网搜索适配，健康检查为 `search_provider=tavily`、`search_status=not_configured`。用户将后续配置 `TAVILY_API_KEY`，目前真实联网搜索不会执行；打开开关时明确返回 unavailable 并保留本地查询。院校接口、公网缺失密钥降级，以及隔离测试资料 + 模拟搜索摘要 + 真实 DeepSeek 的证据分析验证通过。配置步骤见 [v0.4](../development/v0.4.md)。
+2026-10-09 已将 Tavily 密钥保存到服务器权限 0600 的环境文件并重建容器配置，健康检查为 `search_provider=tavily`、`search_status=configured`。真实搜索验证：创业学院奖学金问题返回2条官网结果；公网北京大学成绩单问题返回5条官网结果和6条经原文校验的 DeepSeek 引用证据，`search_status=used`、`ai_status=used`。关闭开关时为 `search_status=disabled`、无联网结果。学校正式审核知识库仍为空；网络摘要不得生成正式办理卡片。院校接口、缺失密钥降级，以及隔离测试资料 + 模拟搜索摘要 + 真实 DeepSeek 的混合证据分析也已验证。配置步骤见 [v0.4](../development/v0.4.md)。
 
 使用隔离演示记录对真实模型执行完整匹配与卡片校验，结果为 `status=card`、`ai_status=used`，来源与卡片绑定一致。该验证不向正式知识目录写入演示资料。模型引用采用文件编号与片段编号生成的固定引用键，避免模型拆分复合编号。
 
