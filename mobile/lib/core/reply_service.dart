@@ -11,13 +11,16 @@ abstract class ReplyService {
 }
 
 class DemoReplyService implements ReplyService {
+  DemoReplyService({this.loadRecord});
+  final Future<String> Function()? loadRecord;
+
   @override
   bool get demoMode => true;
 
   @override
   Future<Json> ask(String question, String? category) async {
     final record = jsonDecode(
-      await rootBundle.loadString('assets/demo-library.json'),
+      await (loadRecord?.call() ?? rootBundle.loadString('assets/demo-library.json')),
     ) as Json;
     final matches = (record['aliases'] as List).any(
       (alias) => question.contains(alias as String),

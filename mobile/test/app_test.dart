@@ -24,11 +24,13 @@ void main() {
   });
 
   testWidgets('unrelated question and incorrect category refuse', (tester) async {
-    final service = DemoReplyService();
-    // AssetBundle uses real platform I/O; run outside the widget fake clock.
+    // Use the shipped fixture without reusing another test's AssetBundle cache.
+    final fixture = File('assets/demo-library.json').readAsStringSync();
+    final service = DemoReplyService(loadRecord: () async => fixture);
     final unrelated = await tester.runAsync(() => service.ask('今天天气如何？', null));
     expect(unrelated!['status'], 'refusal');
     final wrongCategory = await tester.runAsync(() => service.ask('测试借书', '教务'));
     expect(wrongCategory!['status'], 'refusal');
   });
 }
+import 'dart:io';
