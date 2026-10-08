@@ -9,6 +9,7 @@ from urllib.request import Request, urlopen
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("base_url")
+    parser.add_argument("--require-ai", action="store_true")
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
     with urlopen(base + "/health", timeout=15) as response:
@@ -24,6 +25,10 @@ def main():
         answer = json.load(response)
     assert answer["status"] == "refusal", answer
     assert answer["card"] is None and answer["sources"] == [], answer
+    if args.require_ai:
+        assert health["ai_status"] == "configured", health
+        assert answer["ai_status"] == "used", "模型未成功调用，可能已降级"
+        assert answer["ai_model"] == "deepseek-flash", answer
     print(f"Backend smoke passed: health=ok, demo=false, knowledge={health['knowledge_status']}")
 
 

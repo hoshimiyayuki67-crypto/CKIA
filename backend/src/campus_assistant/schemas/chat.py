@@ -57,6 +57,8 @@ class ChatResponse(BaseModel):
     card: ActionCard | None = None
     sources: list[Source] = Field(default_factory=list)
     ai_generated: bool = True
+    ai_status: Literal["disabled", "used", "unavailable"] = "disabled"
+    ai_model: str | None = None
     demo_mode: bool = False
 
     @model_validator(mode="after")

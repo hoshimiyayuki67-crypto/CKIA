@@ -3,13 +3,17 @@ from datetime import date
 from campus_assistant.intelligence.retriever import retrieve
 from campus_assistant.repositories.knowledge import KnowledgeRepository
 from campus_assistant.schemas.chat import ActionCard, ChatRequest, ChatResponse
-from campus_assistant.schemas.knowledge import UNKNOWN
+from campus_assistant.schemas.knowledge import UNKNOWN, KnowledgeEntry
 
 
 def answer(
     request: ChatRequest, repository: KnowledgeRepository, today: date, demo_mode: bool = False
 ) -> ChatResponse:
     hits = retrieve(request, repository.eligible(today))
+    return answer_from_hits(hits, demo_mode)
+
+
+def answer_from_hits(hits: list[KnowledgeEntry], demo_mode: bool = False) -> ChatResponse:
     if not hits:
         return ChatResponse(
             message="未查询到可核实的现行规定，请咨询学校相关职能部门。",

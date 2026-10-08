@@ -10,7 +10,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn campus_assistant.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-浏览器预览：`http://127.0.0.1:8000/`；接口说明：`http://127.0.0.1:8000/docs`；健康检查 `GET /health`。默认从项目 `knowledge/processed/` 加载 JSON 记录；没有审核通过的现行记录时拒答。该接口不存储请求、不调用模型。
+浏览器预览：`http://127.0.0.1:8000/`；接口说明：`http://127.0.0.1:8000/docs`；健康检查 `GET /health`。默认从项目 `knowledge/processed/` 加载 JSON 记录；没有审核通过的现行记录时拒答。接口不存储请求；设置 `DEEPSEEK_API_KEY` 后向 DeepSeek 发送用户问题与最多八条合格资料用于语义匹配。
 
 ## 演示问答与卡片
 
@@ -33,7 +33,7 @@ $env:CAMPUS_DEMO = '1'
 .\.venv\Scripts\python.exe -m campus_assistant.repositories.validate ../knowledge/processed
 ```
 
-结构校验不会执行人工审核或自动设置 reviewed。可用 `CAMPUS_KNOWLEDGE_DIR` 指定另一个资料目录；配置不存在的目录或坏记录将阻止启动。新增/更新 JSON 后重启服务。检索目前仅支持经过人工维护的事项别名，不进行资格推断；没有覆盖的问题会拒答，多条命中会要求澄清。向量混合检索、模型生成与自动抽取后续再集成。
+结构校验不会执行人工审核或自动设置 reviewed。可用 `CAMPUS_KNOWLEDGE_DIR` 指定另一个资料目录；不存在的目录或坏记录会阻止启动。资料更新后重启服务。未配置模型时按事项别名检索，配置 DeepSeek 后支持语义匹配，不进行资格推断。无相关资料时拒答，多条命中要求澄清。向量混合检索、自由文本生成和自动抽取仍待接入。
 
 另开终端验证：
 
@@ -51,6 +51,16 @@ Set-Location backend
 
 脚本自动启动本地演示服务并在验证结束后关闭，检查卡片、材料勾选、类别拒答和用户输入作为文字渲染；验证页面和日志输出到忽略提交的 artifacts/。
 
-后续模型密钥以 `.env.template` 为字段说明。服务不加载 .env 文件，当前仅读取明确设置的 CAMPUS_DEMO 和 CAMPUS_KNOWLEDGE_DIR 环境变量。
+模型配置见 `.env.template`。服务不自动加载 .env 文件，本地应设置环境变量；Docker Compose 使用服务器 `infra/.env` 注入。
+
+## DeepSeek 接入
+
+设置 `DEEPSEEK_API_KEY`、`DEEPSEEK_BASE_URL=https://api.deepseek.com`、`DEEPSEEK_MODEL=deepseek-flash` 并重启。密钥只配置后端，不能提交仓库或进入 APK。健康检查 `ai_status=configured` 仅表示已配置；实际响应 `ai_status=used` 才表示模型调用成功，故障时为 `unavailable`，未启用为 `disabled`。
+
+模型返回受限 JSON，只选择真实片段编号或识别问候；字段、出处和用户可见文本由后端依据审核记录生成。非法编号、额外生成字段及截断输出会降级。没有资料时仍能理解问题，但不会生成学校规定。此阶段不是开放域聊天或完整向量 RAG。
+
+候选上限八条，每条正文最多 1500 字，别名优先；扩大资料覆盖时需接入向量召回。单 worker 每 IP 每分钟六次、全局每分钟三十次、最多两次并发调用。HTTP 和总调用时间受限制，无自动重试。多 worker 部署前需迁移至共享限流。请求正文、密钥和供应商错误正文不写入日志。
+
+参考：[DeepSeek Chat Completions](https://api-docs.deepseek.com/zh-cn/api/create-chat-completion/)。
 
 `requirements-dev.lock.txt` 记录首次验证环境的完整第三方包版本（无哈希，Windows/Python 3.11），不包含本项目和 pip/setuptools。变更依赖后重新安装验证并更新版本清单。

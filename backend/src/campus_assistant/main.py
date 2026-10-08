@@ -6,16 +6,23 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from campus_assistant.api.chat import router
+from campus_assistant.intelligence.deepseek import DeepSeek
 from campus_assistant.repositories.knowledge import KnowledgeRepository
+from campus_assistant.services.ai_answer import CallLimit
 
 ROOT = Path(__file__).resolve().parents[2]
 PROJECT = ROOT.parent
 
 
-def create_app(repository: KnowledgeRepository | None = None, demo_mode: bool = False) -> FastAPI:
+def create_app(
+    repository: KnowledgeRepository | None = None, demo_mode: bool = False,
+    model: DeepSeek | None = None,
+) -> FastAPI:
     application = FastAPI(title="校园万事通", version="0.2.0")
     application.state.knowledge = repository if repository is not None else KnowledgeRepository()
     application.state.demo_mode = demo_mode
+    application.state.model = model
+    application.state.call_limit = CallLimit()
     application.include_router(router, prefix="/api/v1")
 
     @application.get("/health")
@@ -24,6 +31,8 @@ def create_app(repository: KnowledgeRepository | None = None, demo_mode: bool = 
             "status": "ok",
             "knowledge_status": "loaded" if application.state.knowledge.entries else "not_configured",
             "demo_mode": demo_mode,
+            "ai_status": "configured" if model else "disabled",
+            "ai_model": model.model if model else None,
         }
 
     if (PROJECT / "web").is_dir():
@@ -42,4 +51,6 @@ directory = ROOT / "examples" if demo else Path(
 )
 if "CAMPUS_KNOWLEDGE_DIR" in os.environ and not directory.is_dir():
     raise ValueError("CAMPUS_KNOWLEDGE_DIR 目录不存在")
-app = create_app(KnowledgeRepository.load(directory), demo_mode=demo)
+app = create_app(
+    KnowledgeRepository.load(directory), demo_mode=demo, model=DeepSeek.from_environment(),
+)

@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "ActionCard": {
       "properties": {
@@ -209,6 +208,28 @@
       "default": true,
       "title": "Ai Generated",
       "type": "boolean"
+    },
+    "ai_status": {
+      "default": "disabled",
+      "enum": [
+        "disabled",
+        "used",
+        "unavailable"
+      ],
+      "title": "Ai Status",
+      "type": "string"
+    },
+    "ai_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ai Model"
     },
     "demo_mode": {
       "default": false,
