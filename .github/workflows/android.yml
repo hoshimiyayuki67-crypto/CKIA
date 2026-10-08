@@ -11,11 +11,11 @@ on:
       demo_mode:
         description: Build with clearly labelled offline demo data
         type: boolean
-        default: true
+        default: false
       api_base_url:
         description: HTTPS backend URL when demo_mode is false
         type: string
-        default: ''
+        default: 'https://v4.yukifn.xyz:7010'
 
 permissions:
   contents: read
@@ -29,8 +29,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      DEMO_MODE: ${{ github.event_name != 'workflow_dispatch' && 'true' || inputs.demo_mode && 'true' || 'false' }}
-      API_BASE_URL: ${{ inputs.api_base_url || '' }}
+      DEMO_MODE: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'workflow_dispatch' && inputs.demo_mode && 'true' || 'false' }}
+      API_BASE_URL: ${{ inputs.api_base_url || 'https://v4.yukifn.xyz:7010' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -79,4 +79,5 @@ jobs:
         run: |
           echo '### Android APK ready' >> "$GITHUB_STEP_SUMMARY"
           echo 'Download the campus-assistant-android artifact below and extract campus-assistant.apk.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'This preview APK uses Flutter template development signing. Demo data is clearly labelled in the app.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This preview APK uses Flutter template development signing.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Offline demo mode: $DEMO_MODE" >> "$GITHUB_STEP_SUMMARY"

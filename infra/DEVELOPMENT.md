@@ -78,6 +78,6 @@ docker compose -f infra/compose.yaml restart api
 
 ## 验证状态
 
-本机没有 Docker；容器构建及运行由 Backend container 工作流在 Linux 上验证。该工作流不部署到服务器，只运行后端测试、Compose 校验、镜像启动与 API 冒烟检查。服务器实际部署仍需 SSH 地址、用户名和域名信息。
+本机没有 Docker；容器构建及运行由 Backend container 工作流在 Linux 上验证。该工作流不部署到服务器，只运行后端测试、Compose 校验、镜像启动与 API 冒烟检查。服务器部署与公网验证结果见 [当前部署记录](DEPLOYMENT.md)。
 
 调度服务与 Web worker 分离，提醒任务需要幂等键和持久化发送状态，避免多 worker 重复推送。开发 Chroma/生产 Milvus 的迁移需重新建立索引并运行同一金标集。
