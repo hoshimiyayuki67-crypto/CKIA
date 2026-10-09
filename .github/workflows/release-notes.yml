@@ -44,3 +44,34 @@ jobs:
           else
             echo 'Release is not published yet; notes will sync after its build completes.'
           fi
+      - name: Remove backend addresses from previous release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import subprocess
+          import tempfile
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          pages = json.loads(subprocess.check_output([
+              'gh', 'api', '--paginate', '--slurp', f'repos/{repo}/releases'
+          ]))
+          pattern = re.compile(r'https?://v4\.yukifn\.xyz(?::\d+)?(?:/[^\s<>`，。；、)]*)?', re.I)
+          for release in (item for page in pages for item in page):
+              body = release.get('body') or ''
+              cleaned = pattern.sub('应用服务', body)
+              if cleaned == body:
+                  continue
+              with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as payload:
+                  json.dump({'body': cleaned}, payload, ensure_ascii=False)
+                  payload.flush()
+                  subprocess.run([
+                      'gh', 'api', '--method', 'PATCH',
+                      f"repos/{repo}/releases/{release['id']}",
+                      '--input', payload.name, '--silent'
+                  ], check=True)
+              print(f"Cleaned release notes: {release['tag_name']}")
+          PY

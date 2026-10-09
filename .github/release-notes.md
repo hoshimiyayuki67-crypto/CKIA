@@ -10,7 +10,7 @@
 
 ## 安装
 
-下载 campus-assistant.apk。由 GitHub Actions 构建，连接 https://v4.yukifn.xyz:7010 后端，固定发布签名；附 APK-SIGNATURE.txt 与 SHA256SUMS.txt。
+下载 campus-assistant.apk。由 GitHub Actions 构建，使用固定发布签名；附 APK-SIGNATURE.txt 与 SHA256SUMS.txt。
 v0.5.1 可直接覆盖升级。更早的开发签名版本首次迁移需卸载，请先同步聊天；本机照片、资料夹和提醒会随卸载清除。
 
 ## 使用范围
