@@ -6,15 +6,17 @@
 - 健康检查：`https://v4.yukifn.xyz:7010/health`
 - 服务器：ARM64 Armbian / Ubuntu 26.04。
 - 源码目录：`/opt/campus-assistant`，使用 Git archive 上传已提交源码。
-- 应用运行源码版本：`fcbd1fc`（v0.4 后端；后续客户端提交不影响镜像）。
-- API 镜像：`campus-assistant-api:fcbd1fc`。
+- 应用运行源码版本：`6f8d542`（v0.5 后端，兼容 v0.5.0 APK）。
+- API 镜像：`campus-assistant-api:6f8d542`。
 - Compose：`infra/compose.yaml` + `infra/compose.tls.yaml`，环境文件 `infra/.env`。
 - 网关监听服务器 7010，转发至 API；API 只发布到 `127.0.0.1:8000`。
 - Docker 服务启用开机启动，两个容器使用 `unless-stopped` 重启策略。
 
 健康状态为 `ok`、`demo_mode=false`、`knowledge_status=not_configured`，`ai_status=configured`、`ai_model=deepseek-flash`。DeepSeek 官方模型列表验证通过，公网 `/api/v1/chat` 使用 `--require-ai` 验证真实模型调用成功、`ai_status=used`，无依据时仍拒答。当前无学校审核资料，不提供虚构办事依据。
 
-模型密钥只保存在服务器权限 0600 的 `infra/.env`，由 Compose 注入后端容器。现有在线 APK 直接连接新版后端；v0.4 搜索开关、院校选择等新入口需要新版 APK。调用限额及故障降级见 [后端开发](../backend/DEVELOPMENT.md)。本地 40 项后端测试和 Backend container 工作流均通过。
+模型密钥只保存在服务器权限 0600 的 `infra/.env`，由 Compose 注入后端容器。现有在线 APK 直接连接新版后端；v0.5 归纳总结、来源折叠、账号等新入口需要新版 APK。调用限额及故障降级见 [后端开发](../backend/DEVELOPMENT.md)。本地48项后端测试通过；Android Actions 完成静态分析、12项 Flutter 测试和 APK 构建。
+
+v0.5 账号数据库使用 `campus-assistant_campus-data` 命名卷；`accounts_status=configured`。已通过公网创建随机临时账号、保存与读取聊天、另一账号隔离和删除账号验证；验证后立即删除临时账号与对话，不留下凭据文件。数据库重启持久性、版本冲突、删除标记与配额由后端回归覆盖。手机令牌使用安全存储，服务器仅保存密码与令牌摘要。账号、同步和数据维护见 [v0.5](../development/v0.5.md)。
 
 2026-10-09 已将 Tavily 密钥保存到服务器权限 0600 的环境文件并重建容器配置，健康检查为 `search_provider=tavily`、`search_status=configured`。真实搜索验证：创业学院奖学金问题返回2条官网结果；公网北京大学成绩单问题返回5条官网结果和6条经原文校验的 DeepSeek 引用证据，`search_status=used`、`ai_status=used`。关闭开关时为 `search_status=disabled`、无联网结果。学校正式审核知识库仍为空；网络摘要不得生成正式办理卡片。院校接口、缺失密钥降级，以及隔离测试资料 + 模拟搜索摘要 + 真实 DeepSeek 的混合证据分析也已验证。配置步骤见 [v0.4](../development/v0.4.md)。
 
