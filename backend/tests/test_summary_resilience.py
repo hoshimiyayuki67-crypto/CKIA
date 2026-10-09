@@ -3,7 +3,7 @@ import json
 
 import httpx
 
-from campus_assistant.intelligence.deepseek import DeepSeek
+from campus_assistant.intelligence.deepseek import DeepSeek, supported_quote
 
 
 def test_one_invalid_summary_section_does_not_discard_supported_sections():
@@ -21,3 +21,13 @@ def test_one_invalid_summary_section_does_not_discard_supported_sections():
     model = DeepSeek('key', transport=httpx.MockTransport(handle))
     points = asyncio.run(model.summarize('成绩单', '学校', {'web-1': '在校生自助打印成绩单'}))
     assert len(points) == 1 and points[0].heading == '办理步骤'
+
+
+def test_quote_formatting_uses_original_source_and_rejects_changed_facts():
+    source = '在校生可在**自助打印机**\n\n办理成绩单，每份10元。'
+    quote = supported_quote(source, '在校生可在自助打印机 办理成绩单，每份10元。')
+    assert quote is not None and quote in source
+    assert supported_quote(source, '在校生可在自助打印机办理成绩单，每份5元。') is None
+    assert supported_quote(source, '在校生……每份10元。') is None
+    source = '学生／校友—学生服务中心，每份10元。'
+    assert supported_quote(source, '学生/校友–学生服务中心，每份10元。') in source

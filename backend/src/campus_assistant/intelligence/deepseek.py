@@ -39,6 +39,24 @@ def reference(entry: KnowledgeEntry) -> str:
     return "ref-" + hashlib.sha256(pair.encode("utf-8")).hexdigest()[:32]
 
 
+def supported_quote(evidence: str, quote: str) -> str | None:
+    """Allow presentation-only spacing/bold changes, then return the actual source span."""
+    if quote in evidence and quote.strip():
+        return quote
+    typography = str.maketrans({'／': '/', '：': ':', '，': ',', '；': ';',
+                               '－': '-', '—': '-', '–': '-'})
+    offsets = [i for i, char in enumerate(evidence) if not char.isspace() and char not in "*`"]
+    normalized = ''.join(evidence[i] for i in offsets).translate(typography)
+    needle = ''.join(char for char in quote if not char.isspace() and char not in "*`").translate(typography)
+    if not needle:
+        return None
+    start = normalized.find(needle)
+    if start == -1:
+        return None
+    raw = evidence[offsets[start]:offsets[start + len(needle) - 1] + 1]
+    return raw if len(raw) <= 500 else None
+
+
 @dataclass
 class DeepSeek:
     api_key: str = field(repr=False)
@@ -55,6 +73,7 @@ class DeepSeek:
             '"support":[{"reference":"输入引用键","quote":"支撑结论的连续原文"}]}]}。'
             '最多5段，heading仅用结论、办理步骤、所需材料、时间与地点、注意事项。'
             '每段最多220字，整体控制在600字内，每段最多2个support、每个quote不超过180字。'
+            'quote应选取30至80字的一小段连续原文，保留原文的标点，不使用省略号拼接。'
             '先给结论，再按问题提供'
             '具体操作或材料，删掉无关导航、重复内容，不要用空标题或复述提问。'
             '每段所有事实必须由support支撑；quote必须从对应证据连续复制，最多500字。'
@@ -91,8 +110,11 @@ class DeepSeek:
                 for raw in data["points"][:5]:
                     try:
                         point = SummaryPoint.model_validate(raw)
-                        if all(s.reference in evidence and s.quote.strip()
-                               and s.quote in evidence[s.reference] for s in point.support):
+                        quotes = [supported_quote(evidence.get(s.reference, ''), s.quote)
+                                  for s in point.support]
+                        if all(quotes):
+                            for support, quote in zip(point.support, quotes, strict=True):
+                                support.quote = quote
                             points.append(point)
                     except ValueError:
                         continue
