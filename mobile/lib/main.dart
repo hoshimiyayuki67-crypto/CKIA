@@ -4,6 +4,7 @@ import 'core/app_theme.dart';
 import 'core/reply_service.dart';
 import 'core/local_store.dart';
 import 'core/device_features.dart';
+import 'core/cloud_client.dart';
 import 'features/chat/chat_screen.dart';
 
 void main() {
@@ -11,14 +12,16 @@ void main() {
   const api = String.fromEnvironment('API_BASE_URL');
   WidgetsFlutterBinding.ensureInitialized();
   runApp(CampusApp(service: demo ? DemoReplyService() : ApiReplyService(api),
-      store: FileStore(), device: DeviceFeatures()));
+      store: FileStore(), device: DeviceFeatures(),
+      cloud: demo ? null : CloudClient(api, credentials: SecureCredentials(api))));
 }
 
 class CampusApp extends StatelessWidget {
-  const CampusApp({super.key, required this.service, this.store, this.device});
+  const CampusApp({super.key, required this.service, this.store, this.device, this.cloud});
   final ReplyService service;
   final LocalStore? store;
   final DeviceFeatures? device;
+  final CloudClient? cloud;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +29,7 @@ class CampusApp extends StatelessWidget {
       title: '校园万事通',
       debugShowCheckedModeBanner: false,
       theme: campusTheme(),
-      home: ChatScreen(service: service, store: store, device: device),
+      home: ChatScreen(service: service, store: store, device: device, cloud: cloud),
     );
   }
 }

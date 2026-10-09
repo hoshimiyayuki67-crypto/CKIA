@@ -26,26 +26,27 @@ async def add_search(response: ChatResponse, request, repository, today: date, m
                and (not request.category or entry.category == request.category)]
     ranked = retrieve(request, entries)
     entries = (ranked + [entry for entry in entries if entry not in ranked])[:8]
-    evidence = {reference(entry): entry.chunk_text[:1500] for entry in entries}
-    evidence.update({source.id: source.snippet for source in results})
+    evidence = {reference(entry): entry.chunk_text[:3000] for entry in entries}
+    evidence.update({source.id: source.snippet[:6000] for source in results[:6]})
     if model:
         try:
-            response.analysis = await model.analyze(request.question, school.name, evidence)
-            cited = {key for claim in response.analysis for key in claim.references}
+            response.summary_points = await model.summarize(request.question, school.name, evidence)
+            cited = {support.reference for point in response.summary_points for support in point.support}
             response.local_evidence = {reference(entry): entry.source for entry in entries
                                        if reference(entry) in cited}
             response.ai_status = "used"
             response.ai_model = model.model
-            if response.analysis and response.card is None:
+            if response.summary_points and response.card is None:
                 response.status = "clarification"
-                response.message = "本地审核资料尚不能给出完整办事清单，以下为所选院校的相关证据。"
+                response.message = "根据所选院校资料，为你整理如下："
         except ModelUnavailable:
             response.ai_status = "unavailable"
     response.message += (
-        "\n已检索所选院校官网，下面提供与本地资料一起筛选的证据。"
-        "网络内容为搜索摘要，未经人工审核；请打开原文确认年份、适用对象和现行要求。"
-        "如与本地资料不同，请向学校确认后办理。"
+        "\n官网资料由 AI 整理，未经人工审核；办理前请核对原文年份与适用对象。"
     )
-    if not response.analysis:
-        response.message += "\n暂未生成可核实的证据分析，可查看下方搜索结果。"
+    if not response.summary_points:
+        response.message += "\n暂未获得足够依据生成总结，可展开来源查看相关资料。"
+    # Full pages are model context, not a wall of text shipped to the conversation.
+    response.web_sources = [source.model_copy(update={"snippet": source.snippet[:800]})
+                            for source in results]
     return response

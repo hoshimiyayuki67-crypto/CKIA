@@ -62,6 +62,20 @@ class WebSource(BaseModel):
     snippet: str
     retrieved_at: str
     verified: bool = False
+    content_kind: Literal["snippet", "page"] = "snippet"
+
+
+class SupportQuote(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reference: str
+    quote: str = Field(min_length=1, max_length=500)
+
+
+class SummaryPoint(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    heading: str = Field(min_length=1, max_length=30)
+    text: str = Field(min_length=1, max_length=400)
+    support: list[SupportQuote] = Field(min_length=1, max_length=4)
 
 
 class EvidenceClaim(BaseModel):
@@ -80,6 +94,7 @@ class ChatResponse(BaseModel):
     demo_mode: bool = False
     web_sources: list[WebSource] = Field(default_factory=list)
     analysis: list[EvidenceClaim] = Field(default_factory=list)
+    summary_points: list[SummaryPoint] = Field(default_factory=list)
     local_evidence: dict[str, Source] = Field(default_factory=dict)
     search_status: Literal["disabled", "used", "empty", "unavailable"] = "disabled"
     school_id: str = "imuchuangye"

@@ -2,12 +2,15 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from campus_assistant.api.accounts import AuthLimit
+from campus_assistant.api.accounts import router as accounts_router
 from campus_assistant.api.chat import router
 from campus_assistant.intelligence.deepseek import DeepSeek
 from campus_assistant.intelligence.web_search import TavilySearch, WebSearch
+from campus_assistant.repositories.accounts import Accounts
 from campus_assistant.repositories.knowledge import KnowledgeRepository
 from campus_assistant.services.ai_answer import CallLimit
 
@@ -19,19 +22,39 @@ def create_app(
     repository: KnowledgeRepository | None = None, demo_mode: bool = False,
     model: DeepSeek | None = None,
     search: WebSearch | None = None,
+    accounts: Accounts | None = None,
 ) -> FastAPI:
-    application = FastAPI(title="校园万事通", version="0.4.0")
+    application = FastAPI(title="校园万事通", version="0.5.0")
+    application.state.accounts = accounts
+    application.state.auth_limit = AuthLimit()
     application.state.knowledge = repository if repository is not None else KnowledgeRepository()
     application.state.demo_mode = demo_mode
     application.state.model = model
     application.state.search = search if search is not None else WebSearch()
     application.state.call_limit = CallLimit()
     application.include_router(router, prefix="/api/v1")
+    application.include_router(accounts_router, prefix="/api/v1")
+
+    @application.middleware("http")
+    async def bounded_body(request, call_next):
+        if request.method in {"POST", "PUT", "DELETE"}:
+            limit = 4096 if request.url.path.startswith("/api/v1/auth/") else 262144
+            raw = bytearray()
+            async for chunk in request.stream():
+                raw.extend(chunk)
+                if len(raw) > limit:
+                    return JSONResponse({"detail": "请求内容过大"}, status_code=413)
+            request._body = bytes(raw)
+        response = await call_next(request)
+        if request.url.path.startswith(("/api/v1/auth", "/api/v1/sessions")):
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     @application.get("/health")
     async def health():
         return {
             "status": "ok",
+            "accounts_status": "configured" if accounts else "disabled",
             "knowledge_status": "loaded" if application.state.knowledge.entries else "not_configured",
             "demo_mode": demo_mode,
             "ai_status": "configured" if model else "disabled",
@@ -61,4 +84,6 @@ if "CAMPUS_KNOWLEDGE_DIR" in os.environ and not directory.is_dir():
 app = create_app(
     KnowledgeRepository.load(directory), demo_mode=demo, model=DeepSeek.from_environment(),
     search=WebSearch.from_environment(),
+    accounts=Accounts(Path(os.environ["CAMPUS_DATA_DIR"]) / "accounts.sqlite3")
+    if os.getenv("CAMPUS_DATA_DIR") else None,
 )

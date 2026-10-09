@@ -67,7 +67,7 @@ def test_ai_extracts_only_supported_evidence_and_sees_local_and_web():
         context = json.loads(payload['messages'][1]['content'])
         contexts.append(context)
         result = ({'intent': 'lookup', 'chunk_ids': []} if 'records' in context else
-                  {'claims': [{'text': '申请须提交学生证', 'references': ['web-1']}]})
+                  {'points': [{'heading': '材料', 'text': '申请需要提供学生证。', 'support': [{'reference': 'web-1', 'quote': '申请须提交学生证'}]}]})
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
                                                      'message': {'content': json.dumps(result)}}]})
     client = TestClient(create_app(KnowledgeRepository([entry()]),
@@ -75,21 +75,21 @@ def test_ai_extracts_only_supported_evidence_and_sees_local_and_web():
                                   search=WebSearch(search_transport([]))))
     data = client.post('/api/v1/chat', json={'question': '材料', 'search_enabled': True}).json()
     assert len(contexts[1]['evidence']) == 2
-    assert data['analysis'][0]['text'] == '申请须提交学生证'
-    assert data['analysis'][0]['references'] == ['web-1']
+    assert data['summary_points'][0]['text'] == '申请需要提供学生证。'
+    assert data['summary_points'][0]['support'][0]['reference'] == 'web-1'
 
 
 def test_invented_analysis_is_discarded():
     def handle(request):
         context = json.loads(json.loads(request.content)['messages'][1]['content'])
         result = ({'intent': 'lookup', 'chunk_ids': []} if 'records' in context else
-                  {'claims': [{'text': '无须任何材料', 'references': ['web-1']}]})
+                  {'points': [{'heading': '材料', 'text': '不用材料。', 'support': [{'reference': 'web-1', 'quote': '无须任何材料'}]}]})
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
                                                      'message': {'content': json.dumps(result)}}]})
     client = TestClient(create_app(model=DeepSeek('test', transport=httpx.MockTransport(handle)),
                                   search=WebSearch(search_transport([]))))
     data = client.post('/api/v1/chat', json={'question': '材料', 'search_enabled': True}).json()
-    assert data['analysis'] == [] and data['ai_status'] == 'unavailable'
+    assert data['summary_points'] == [] and data['ai_status'] == 'unavailable'
 
 
 def test_custom_school_validation_and_registry_cannot_be_overridden():
@@ -108,7 +108,8 @@ def test_tavily_requires_key_and_filters_results_again_on_server():
     observed = []
     def handle(request):
         observed.append(json.loads(request.content))
-        assert request.url == 'https://api.tavily.com/search'
+        if request.url.path != '/search':
+            return httpx.Response(503)
         assert request.headers['authorization'] == 'Bearer test-search-only'
         return httpx.Response(200, json={'results': [
             {'title': '本校', 'url': 'https://imuchuangye.cn/notice', 'content': '提交学生证'},

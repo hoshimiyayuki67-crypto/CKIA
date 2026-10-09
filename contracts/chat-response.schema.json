@@ -194,6 +194,60 @@
       "title": "Source",
       "type": "object"
     },
+    "SummaryPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 30,
+          "minLength": 1,
+          "title": "Heading",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "support": {
+          "items": {
+            "$ref": "#/$defs/SupportQuote"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Support",
+          "type": "array"
+        }
+      },
+      "required": [
+        "heading",
+        "text",
+        "support"
+      ],
+      "title": "SummaryPoint",
+      "type": "object"
+    },
+    "SupportQuote": {
+      "additionalProperties": false,
+      "properties": {
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        },
+        "quote": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference",
+        "quote"
+      ],
+      "title": "SupportQuote",
+      "type": "object"
+    },
     "WebSource": {
       "properties": {
         "id": {
@@ -220,6 +274,15 @@
           "default": false,
           "title": "Verified",
           "type": "boolean"
+        },
+        "content_kind": {
+          "default": "snippet",
+          "enum": [
+            "snippet",
+            "page"
+          ],
+          "title": "Content Kind",
+          "type": "string"
         }
       },
       "required": [
@@ -310,6 +373,13 @@
         "$ref": "#/$defs/EvidenceClaim"
       },
       "title": "Analysis",
+      "type": "array"
+    },
+    "summary_points": {
+      "items": {
+        "$ref": "#/$defs/SummaryPoint"
+      },
+      "title": "Summary Points",
       "type": "array"
     },
     "local_evidence": {

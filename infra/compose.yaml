@@ -17,10 +17,12 @@ services:
       DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-flash}
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      CAMPUS_DATA_DIR: /app/data
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
       - ../knowledge/processed:/app/knowledge/processed:ro
+      - campus-data:/app/data
     read_only: true
     tmpfs:
       - /tmp:size=64m,mode=1777
@@ -33,3 +35,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  campus-data:

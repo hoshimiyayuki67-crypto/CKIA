@@ -77,7 +77,7 @@ class ApiReplyService implements ReplyService {
         'school_id': school.id, 'school_name': school.name,
         'school_domain': school.domain, 'search_enabled': searchEnabled,
       }));
-      final response = await request.close().timeout(const Duration(seconds: 45));
+      final response = await request.close().timeout(const Duration(seconds: 75));
       final text = await response.transform(utf8.decoder).join().timeout(
         const Duration(seconds: 15),
       );

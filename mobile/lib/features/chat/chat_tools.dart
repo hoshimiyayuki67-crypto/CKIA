@@ -26,14 +26,16 @@ extension _ChatTools on _ChatScreenState {
           pair.value.addAll((data[pair.key] as List? ?? [])
               .map((value) => Map<String, dynamic>.from(value as Map)));
         }
+        _pendingDeletes.addAll((data['pending_deletes'] as List? ?? [])
+            .map((value) => Map<String, dynamic>.from(value as Map)));
         for (final session in _sessions) {
           if (session['id'] == _sessionId) {
             _messages.addAll((session['messages'] as List)
                 .map((value) => Map<String, dynamic>.from(value as Map)));
             _category = session['category'] as String?;
+            _sessionOwner = session['owner'] as String?;
           }
         }
-        _loading = false;
       });
       _scrollToEnd();
     } catch (_) {
@@ -47,19 +49,33 @@ extension _ChatTools on _ChatScreenState {
         if (recovered != null && mounted) await _reviewText(recovered);
       } catch (_) { _notice('上次图片未能恢复，请重新选择图片'); }
     }
+    await _restoreAccount();
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _persist() async {
     if (!_storageHealthy || widget.store == null) return;
+    final prior = _sessions.where((value) => value['id'] == _sessionId).toList();
+    final previous = prior.isEmpty ? <String, dynamic>{} : prior.first;
     _sessions.removeWhere((value) => value['id'] == _sessionId);
     if (_messages.isNotEmpty) {
       // Keep complete conversation pairs; cap retained history to 20 conversations.
       if (_messages.length > 100) _messages.removeRange(0, _messages.length - 100);
+      final changed = jsonEncode(previous['messages']) != jsonEncode(_messages) || previous['category'] != _category;
+      final title = _messages.first['message'] as String? ?? '校园对话';
       _sessions.insert(0, {'id': _sessionId, 'school': _school.toJson(),
-        'title': _messages.first['message'], 'category': _category,
-        'updated_at': DateTime.now().toIso8601String(), 'messages': List<Json>.from(_messages)});
+        'title': title.length > 200 ? title.substring(0, 200) : title, 'category': _category,
+        'owner': _sessionOwner, 'cloud_revision': previous['cloud_revision'] ?? 0,
+        'dirty': previous['dirty'] == true || changed,
+        'updated_at': changed ? DateTime.now().toIso8601String() : previous['updated_at'],
+        'messages': List<Json>.from(_messages)});
     }
-    if (_sessions.length > 20) _sessions.removeRange(20, _sessions.length);
+    for (var i = _sessions.length - 1; i >= 20; i--) {
+      final session = _sessions[i];
+      if (session['id'] != _sessionId && !(session['owner'] != null && session['dirty'] == true)) {
+        _sessions.removeAt(i);
+      }
+    }
     final liveCards = [..._saved, ..._sessions.expand((session) =>
         (session['messages'] as List).map((item) => Map<String, dynamic>.from(item as Map)))];
     final liveKeys = liveCards.where((item) => item['card'] is Map).map(_cardKey).toSet();
@@ -68,7 +84,8 @@ extension _ChatTools on _ChatScreenState {
       await widget.store!.write({'version': 1, 'current_session': _sessionId,
         'school_id': _school.id, 'custom_schools': _customSchools.map((value) => value.toJson()).toList(),
         'search_enabled': _searchEnabled, 'offline': _offline,
-        'sessions': _sessions, 'saved': _saved, 'checks': _checks, 'reminders': _reminders});
+        'sessions': _sessions, 'saved': _saved, 'checks': _checks, 'reminders': _reminders,
+        'pending_deletes': _pendingDeletes});
     } catch (_) { _notice('保存失败，请检查手机存储空间；本次内容仍可在页面查看'); }
   }
 
@@ -78,12 +95,18 @@ extension _ChatTools on _ChatScreenState {
       Row(children: [
         const Icon(Icons.school_outlined, size: 17, color: CampusColors.green),
         const SizedBox(width: 5),
-        Expanded(child: TextButton(onPressed: _sending || _loading ? null : _selectSchool,
+        Expanded(child: TextButton(onPressed: _sending || _loading || _syncing ? null : _selectSchool,
           style: TextButton.styleFrom(alignment: Alignment.centerLeft),
           child: Text(_school.name, overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12)))),
         const Icon(Icons.expand_more, size: 16),
       ]),
+      if (widget.cloud?.signedIn == true) Padding(
+        padding: const EdgeInsets.only(bottom: 4), child: Row(children: [
+          Icon(_syncing ? Icons.sync : Icons.cloud_done_outlined, size: 13, color: CampusColors.muted),
+          const SizedBox(width: 5),
+          Text(_syncStatus, style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
+        ])),
       Row(children: [
         Expanded(child: Row(children: [
           const Icon(Icons.travel_explore, size: 17, color: CampusColors.muted),
@@ -91,13 +114,13 @@ extension _ChatTools on _ChatScreenState {
           const Text('联网搜索', style: TextStyle(fontSize: 11)),
           Transform.scale(scale: .8, child: Switch(key: const Key('search-switch'),
             value: _searchEnabled && !_offline,
-            onChanged: _sending || _offline || widget.service.demoMode ? null : (value) {
+            onChanged: _sending || _syncing || _offline || widget.service.demoMode ? null : (value) {
               setState(() => _searchEnabled = value); _persist();
             })),
         ])),
         const Text('离线资料', style: TextStyle(fontSize: 11)),
         Transform.scale(scale: .8, child: Switch(key: const Key('offline-switch'), value: _offline,
-          onChanged: _sending ? null : (value) {
+          onChanged: _sending || _syncing ? null : (value) {
             setState(() => _offline = value); _persist();
           })),
       ]),
@@ -200,6 +223,53 @@ extension _ChatTools on _ChatScreenState {
       ]),
     ]));
 
+  Widget _answerDetails(Json item) {
+    final web = (item['web_sources'] as List? ?? [])
+        .map((s) => Map<String, dynamic>.from(s as Map)).toList();
+    final local = (item['local_evidence'] as Map? ?? {}).entries.map((entry) =>
+      {...Map<String, dynamic>.from(entry.value as Map), 'id': entry.key,
+        'verified': true, 'snippet': '', 'retrieved_at': entry.value['date']}).toList();
+    final sources = [...web, ...local];
+    final points = item['summary_points'] as List? ?? [];
+    final legacy = item['analysis'] as List? ?? [];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      for (final point in points) Padding(padding: const EdgeInsets.only(top: 18),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Container(width: 3, height: 16, decoration: BoxDecoration(
+            color: CampusColors.green, borderRadius: BorderRadius.circular(3))),
+            const SizedBox(width: 8), Text(point['heading'] as String,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))]),
+          const SizedBox(height: 8),
+          SelectableText(point['text'] as String, style: const TextStyle(fontSize: 14, height: 1.8)),
+          Wrap(spacing: 6, children: [
+            for (final ref in (point['support'] as List? ?? [])
+                .map((s) => s['reference'] as String).toSet())
+              TextButton.icon(style: TextButton.styleFrom(visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8)),
+                onPressed: () {
+                  final matches = sources.where((s) => s['id'] == ref).toList();
+                  if (matches.isNotEmpty) _showPage('原文依据', [_webSource(matches.first),
+                    for (final support in point['support'] as List)
+                      if (support['reference'] == ref) Padding(padding: const EdgeInsets.only(top: 12),
+                        child: SelectableText('原文：${support['quote']}', style: const TextStyle(fontSize: 13)))]);
+                }, icon: const Icon(Icons.link_rounded, size: 13),
+                label: Text('依据 ${sources.indexWhere((s) => s['id'] == ref) + 1}',
+                  style: const TextStyle(fontSize: 10))),
+          ]),
+        ])),
+      if (sources.isNotEmpty || legacy.isNotEmpty) ExpansionTile(
+        title: Text('查看 ${sources.length} 份来源与原文',
+          style: const TextStyle(fontSize: 12, color: CampusColors.muted)),
+        leading: const Icon(Icons.library_books_outlined, size: 17, color: CampusColors.muted),
+        children: [
+          for (final claim in legacy) Padding(padding: const EdgeInsets.only(top: 8),
+            child: Text(claim['text'] as String, style: const TextStyle(fontSize: 12))),
+          for (final source in sources) _webSource(source),
+        ],
+      ),
+    ]);
+  }
+
   Future<void> _photo() async {
     final camera = await showModalBottomSheet<bool>(context: context, builder: (context) =>
       SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -233,12 +303,12 @@ extension _ChatTools on _ChatScreenState {
   }
 
   void _findOffline(String question) {
-    final records = [..._saved, ..._sessions.where((value) => value['school']['id'] == _school.id)
+    final records = [..._saved, ..._sessions.where((value) => _visibleSession(value) && value['school']['id'] == _school.id)
         .expand((value) => (value['messages'] as List).map((item) => Map<String, dynamic>.from(item as Map)))];
     final terms = question.toLowerCase().split(RegExp(r'\s+')).where((value) => value.isNotEmpty);
     final seen = <String>{};
     final hits = records.where((value) => value['user'] != true && value['school_id'] == _school.id &&
-        terms.every((term) => '${value['message']} ${value['card'] ?? ''}'.toLowerCase().contains(term)) &&
+        terms.every((term) => '${value['message']} ${value['card'] ?? ''} ${value['summary_points'] ?? ''}'.toLowerCase().contains(term)) &&
         seen.add(value['card'] is Map ? _cardKey(value) : '${value['saved_at']}|${value['message']}'))
         .take(10).toList();
     _showPage('离线查询结果', hits.isEmpty ? [const Text('未找到已保存的匹配内容。可输入事项关键词，或关闭离线模式查询最新资料。')]
@@ -250,13 +320,8 @@ extension _ChatTools on _ChatScreenState {
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text('保存于 ${item['saved_at'] ?? '历史记录'}', style: const TextStyle(fontSize: 11, color: CampusColors.muted)),
       Text(item['message'] as String? ?? ''),
-      for (final claim in item['analysis'] as List? ?? [])
-        Padding(padding: const EdgeInsets.only(top: 8), child: Text('${claim['text']}\n出处：${(claim['references'] as List).join('、')}')),
       if (item['card'] is Map) _card(item),
-      for (final source in item['web_sources'] as List? ?? []) _webSource(Map<String, dynamic>.from(source as Map)),
-      for (final entry in (item['local_evidence'] as Map? ?? {}).entries)
-        _webSource({...Map<String, dynamic>.from(entry.value as Map), 'id': entry.key,
-          'verified': true, 'snippet': '', 'retrieved_at': entry.value['date']}),
+      _answerDetails(item),
     ])));
 
   void _showPage(String title, List<Widget> children) {
@@ -332,7 +397,7 @@ extension _ChatTools on _ChatScreenState {
           })]),
         body: SafeArea(child: ListView(padding: const EdgeInsets.all(16), children: [
           Text(_school.name, style: Theme.of(context).textTheme.titleMedium),
-          const Text('内容仅存本机。最多保留20个对话、每个100条消息和100份资料；办理前核对最新原文。', style: TextStyle(fontSize: 12)),
+          const Text('本机保留最近20个对话，每个100条消息。登录后的新聊天自动同步；资料夹与提醒仍保存在本机。', style: TextStyle(fontSize: 12)),
           const SizedBox(height: 20),
           const Text('保存的资料', style: TextStyle(fontWeight: FontWeight.bold)),
           if (!_saved.any((value) => value['school_id'] == _school.id)) const ListTile(title: Text('尚未保存资料')),
@@ -343,20 +408,25 @@ extension _ChatTools on _ChatScreenState {
               setState(() => _saved.remove(item)); update(() {}); _persist();
             })),
           const SizedBox(height: 16), const Text('历史对话', style: TextStyle(fontWeight: FontWeight.bold)),
-          for (final session in _sessions.where((value) => value['school']['id'] == _school.id)) ListTile(
+          for (final session in _sessions.where((value) => _visibleSession(value) && value['school']['id'] == _school.id)) ListTile(
             title: Text(session['title'] as String, maxLines: 2, overflow: TextOverflow.ellipsis),
             subtitle: Text(session['updated_at'] as String), onTap: () {
               setState(() {
                 _sessionId = session['id'] as String; _category = session['category'] as String?;
+                _sessionOwner = session['owner'] as String?;
                 _messages.clear(); _messages.addAll((session['messages'] as List)
                     .map((item) => Map<String, dynamic>.from(item as Map)));
               });
               _persist(); Navigator.pop(pageContext); _scrollToEnd();
-            }, trailing: IconButton(tooltip: '删除对话', icon: const Icon(Icons.delete_outline), onPressed: () {
-              setState(() {
-                _sessions.remove(session);
-                if (_sessionId == session['id']) { _messages.clear(); _sessionId = DateTime.now().microsecondsSinceEpoch.toString(); }
-              }); update(() {}); _persist();
+            }, trailing: IconButton(tooltip: '删除对话', icon: const Icon(Icons.delete_outline), onPressed: () async {
+              final confirmed = await showDialog<bool>(context: pageContext, builder: (ctx) => AlertDialog(
+                title: const Text('删除对话？'), content: Text(session['owner'] == null
+                    ? '删除这条本机聊天记录。' : '删除这条聊天，并在同步时删除对应云端记录。'),
+                actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+                  FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('删除'))]));
+              if (confirmed != true || !mounted) return;
+              await _deleteConversation(session);
+              if (pageContext.mounted) update(() {});
             })),
           const SizedBox(height: 16), Row(children: [
             const Expanded(child: Text('办事提醒', style: TextStyle(fontWeight: FontWeight.bold))),

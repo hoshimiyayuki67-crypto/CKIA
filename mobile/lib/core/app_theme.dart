@@ -38,6 +38,17 @@ ThemeData campusTheme() => ThemeData(
     backgroundColor: CampusColors.green,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
   )),
+  inputDecorationTheme: InputDecorationTheme(
+    filled: true, fillColor: const Color(0xFFF1F6F2),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: CampusColors.green)),
+  ),
+  bottomSheetTheme: const BottomSheetThemeData(backgroundColor: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(28)))),
+  expansionTileTheme: const ExpansionTileThemeData(tilePadding: EdgeInsets.zero,
+    childrenPadding: EdgeInsets.only(bottom: 12), shape: Border(), collapsedShape: Border()),
   chipTheme: ChipThemeData(
     side: const BorderSide(color: CampusColors.line), backgroundColor: Colors.white,
     selectedColor: CampusColors.mint,

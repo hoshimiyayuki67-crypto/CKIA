@@ -12,7 +12,8 @@ COPY backend/requirements-runtime.lock.txt /tmp/requirements.txt
 RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt \
     && groupadd --gid 10001 campus \
     && useradd --uid 10001 --gid campus --no-create-home campus \
-    && mkdir -p /app/knowledge/processed
+    && mkdir -p /app/knowledge/processed /app/data \
+    && chown campus:campus /app/data
 
 COPY backend/src /app/backend/src
 COPY backend/examples /app/backend/examples
