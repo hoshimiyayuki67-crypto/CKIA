@@ -99,7 +99,7 @@ def test_custom_school_validation_and_registry_cannot_be_overridden():
                                                 'school_name': '学校', 'school_domain': domain}).status_code == 422
     assert client.post('/api/v1/chat', json={'question': '材料', 'school_id': 'custom-example.edu.cn',
                                             'school_name': '其他院校', 'school_domain': 'example.edu.cn'}).status_code == 200
-    assert len(client.get('/api/v1/schools').json()) == 4
+    assert len(client.get('/api/v1/schools').json()) == 1412
     assert not official_url('https://imuchuangye.cn@evil.test', 'imuchuangye.cn')
     assert not official_url('https://imuchuangye.cn:22', 'imuchuangye.cn')
 

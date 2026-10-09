@@ -7,6 +7,12 @@
 !backend/examples/**
 !web/
 !web/**
+!knowledge/
+!knowledge/processed/
+!knowledge/processed/**
+!knowledge/official/
+!knowledge/official/*.doc
+!knowledge/official/*.json
 !infra/
 !infra/Dockerfile
 **/__pycache__/**

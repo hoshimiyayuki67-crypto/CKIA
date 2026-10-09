@@ -15,15 +15,8 @@ application.set(f"{{{ANDROID}}}icon", "@drawable/campus_icon")
 application.set(f"{{{ANDROID}}}allowBackup", "false")
 drawable = manifest.parent / "res" / "drawable"
 drawable.mkdir(parents=True, exist_ok=True)
-(drawable / "campus_icon.xml").write_text('''<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp" android:height="108dp"
-    android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#257E67"
-        android:pathData="M24,0 L84,0 Q108,0 108,24 L108,84 Q108,108 84,108 L24,108 Q0,108 0,84 L0,24 Q0,0 24,0 Z" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M20,48 L54,30 L88,48 L54,66 Z M32,60 L32,75 Q54,88 76,75 L76,60 L54,72 Z M86,51 L90,51 L90,74 L86,74 Z" />
-</vector>
-''', encoding="utf-8")
+(drawable / 'campus_icon.xml').write_text(
+    (Path(__file__).resolve().parents[1] / 'mobile/assets/brand/campus-icon.xml').read_text(encoding='utf-8'), encoding='utf-8')
 if not any(
     permission.get(f"{{{ANDROID}}}name") == "android.permission.INTERNET"
     for permission in root.getroot().findall("uses-permission")

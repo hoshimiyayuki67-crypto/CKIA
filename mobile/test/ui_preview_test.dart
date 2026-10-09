@@ -18,7 +18,7 @@ class PreviewService implements ReplyService {
   int calls = 0;
   @override
   Future<Json> ask(String question, String? category,
-      {School school = schoolsFirst, bool searchEnabled = false}) async {
+      {School school = schoolsFirst, bool searchEnabled = false, List<Json> history = const []}) async {
     calls++;
     if (fail) { fail = false; throw const SocketException('preview'); }
     if (summary) return {'status': 'clarification', 'ai_status': 'used',
@@ -107,8 +107,16 @@ void main() {
     await tester.drag(find.byType(ListView).last, const Offset(0, 900));
     await tester.pumpAndSettle();
     await capture('action-card');
+    await tester.tap(find.byTooltip('外观模式')); await tester.pumpAndSettle();
+    await tester.tap(find.text('暗黑模式')); await tester.pumpAndSettle();
+    await capture('dark-action-card');
     await tester.tap(find.byTooltip('新对话'));
     await tester.pumpAndSettle();
+    await capture('dark-home');
+    await tester.tap(find.text('内蒙古大学创业学院')); await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('school-search')), 'qinghua'); await tester.pumpAndSettle();
+    await capture('school-search');
+    await tester.tap(find.byTooltip('关闭院校选择')); await tester.pumpAndSettle();
     tester.view.physicalSize = const Size(320, 640);
     tester.view.viewInsets = const FakeViewPadding(bottom: 260);
     addTearDown(tester.view.resetViewInsets);

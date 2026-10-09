@@ -5,7 +5,7 @@ import '../../core/app_theme.dart';
 import '../../core/reply_service.dart';
 
 class ActionCardView extends StatefulWidget {
-  const ActionCardView({super.key, required this.card, this.checked,
+  ActionCardView({super.key, required this.card, this.checked,
     this.onChecked, this.onSave, this.onReminder});
   final Json card;
   final List<int>? checked;
@@ -33,43 +33,43 @@ class _ActionCardViewState extends State<ActionCardView> {
     final materials = card['materials'] as List? ?? [];
     final sources = card['sources'] as List? ?? [];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const SizedBox(height: 18),
+      SizedBox(height: 18),
       Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(color: CampusColors.mint, borderRadius: BorderRadius.circular(8)),
-        child: const Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.fact_check_outlined, size: 14, color: CampusColors.green),
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(color: CampusPalette.of(context).mint, borderRadius: BorderRadius.circular(8)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.fact_check_outlined, size: 14, color: CampusPalette.of(context).green),
           SizedBox(width: 5),
-          Text('办事清单', style: TextStyle(fontSize: 11, color: CampusColors.green)),
+          Text('办事清单', style: TextStyle(fontSize: 11, color: CampusPalette.of(context).green)),
         ]),
       ),
-      const SizedBox(height: 10),
+      SizedBox(height: 10),
       Text(field('matter_name'), style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 6),
+      SizedBox(height: 6),
       Text('适用对象：' + (card['target_users'] as List? ?? []).join('、'),
-          style: const TextStyle(fontSize: 12, color: CampusColors.muted)),
-      const SizedBox(height: 18),
+          style: TextStyle(fontSize: 12, color: CampusPalette.of(context).muted)),
+      SizedBox(height: 18),
       Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 4),
-        decoration: BoxDecoration(color: CampusColors.canvas,
+        padding: EdgeInsets.fromLTRB(14, 14, 14, 4),
+        decoration: BoxDecoration(color: CampusPalette.of(context).canvas,
             borderRadius: BorderRadius.circular(16)),
         child: Column(children: [
           Row(children: [
-            const Expanded(child: Text('材料清单', style: TextStyle(fontWeight: FontWeight.w600))),
+            Expanded(child: Text('材料清单', style: TextStyle(fontWeight: FontWeight.w600))),
             Text(checked.length.toString() + '/' + materials.length.toString() + ' 已准备',
-                style: const TextStyle(fontSize: 11, color: CampusColors.green)),
+                style: TextStyle(fontSize: 11, color: CampusPalette.of(context).green)),
           ]),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(
             value: materials.isEmpty ? 0 : checked.length / materials.length,
-            minHeight: 3, backgroundColor: CampusColors.line, color: CampusColors.green,
+            minHeight: 3, backgroundColor: CampusPalette.of(context).line, color: CampusPalette.of(context).green,
           )),
           for (var i = 0; i < materials.length; i++)
             CheckboxListTile(
               key: Key('material-' + i.toString()),
               dense: true, contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
-              activeColor: CampusColors.green,
+              activeColor: CampusPalette.of(context).green,
               value: checked.contains(i),
               onChanged: (value) => setState(() {
                 final next = Set<int>.from(checked);
@@ -78,16 +78,16 @@ class _ActionCardViewState extends State<ActionCardView> {
                 widget.onChecked?.call(next.toList()..sort());
               }),
               title: Text(materials[i]['item'] as String? ?? '未查到材料名称',
-                  style: const TextStyle(fontSize: 13)),
+                  style: TextStyle(fontSize: 13)),
               subtitle: Text(
                 (materials[i]['required'] == true ? '必需材料' : '按需准备') +
                     (materials[i]['note'] is String ? ' · ' + (materials[i]['note'] as String) : ''),
-                style: const TextStyle(fontSize: 11, color: CampusColors.muted),
+                style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted),
               ),
             ),
         ]),
       ),
-      const SizedBox(height: 16),
+      SizedBox(height: 16),
       _detail(Icons.place_outlined, '办理地点', 'location'),
       _detail(Icons.schedule_rounded, '办公时间', 'office_hours'),
       _detail(Icons.event_outlined, '截止日期', 'deadline'),
@@ -95,62 +95,64 @@ class _ActionCardViewState extends State<ActionCardView> {
       _detail(Icons.support_agent_rounded, '咨询渠道', 'contact'),
       for (final note in card['notes'] as List? ?? [])
         Container(
-          margin: const EdgeInsets.only(top: 4, bottom: 8), padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: const Color(0xFFFFF6E6),
+          margin: EdgeInsets.only(top: 4, bottom: 8), padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(color: Theme.of(context).brightness == Brightness.dark
+              ? Color(0xFF342B1C) : Color(0xFFFFF6E6),
               borderRadius: BorderRadius.circular(12)),
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Icon(Icons.lightbulb_outline_rounded, size: 16, color: Color(0xFF967536)),
-            const SizedBox(width: 8),
+            Icon(Icons.lightbulb_outline_rounded, size: 16, color: Color(0xFF967536)),
+            SizedBox(width: 8),
             Expanded(child: Text(note as String,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF796235)))),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).brightness == Brightness.dark
+                    ? Color(0xFFE6CA90) : Color(0xFF796235)))),
           ]),
         ),
-      const Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1)),
-      const Row(children: [
-        Icon(Icons.verified_outlined, size: 15, color: CampusColors.green),
+      Padding(padding: EdgeInsets.symmetric(vertical: 10), child: Divider(height: 1)),
+      Row(children: [
+        Icon(Icons.verified_outlined, size: 15, color: CampusPalette.of(context).green),
         SizedBox(width: 6),
         Text('信息出处', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
       ]),
-      const SizedBox(height: 8),
+      SizedBox(height: 8),
       for (final source in sources) ...[
         Text(source['title'] as String? ?? '未查到出处',
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
         Text((source['issuer'] ?? '').toString() + ' · ' + (source['date'] ?? '').toString(),
-            style: const TextStyle(fontSize: 11, color: CampusColors.muted)),
+            style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted)),
         if (source['url'] is String)
           TextButton.icon(
             style: TextButton.styleFrom(padding: EdgeInsets.zero,
-                alignment: Alignment.centerLeft, foregroundColor: CampusColors.green),
+                alignment: Alignment.centerLeft, foregroundColor: CampusPalette.of(context).green),
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: source['url'] as String));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('原文链接已复制')));
+                    SnackBar(content: Text('原文链接已复制')));
               }
             },
-            icon: const Icon(Icons.link_rounded, size: 16), label: const Text('复制原文链接'),
+            icon: Icon(Icons.link_rounded, size: 16), label: Text('复制原文链接'),
           ),
       ],
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       Wrap(spacing: 8, children: [
         if (widget.onSave != null) TextButton.icon(onPressed: widget.onSave,
-            icon: const Icon(Icons.bookmark_add_outlined), label: const Text('保存到资料夹')),
+            icon: Icon(Icons.bookmark_add_outlined), label: Text('保存到资料夹')),
         if (widget.onReminder != null) TextButton.icon(onPressed: widget.onReminder,
-            icon: const Icon(Icons.alarm_add_outlined), label: const Text('设置提醒')),
+            icon: Icon(Icons.alarm_add_outlined), label: Text('设置提醒')),
       ]),
-      const Text('材料勾选保存在本机；离线资料可能过期，办理前请核对原文。',
-          style: TextStyle(fontSize: 10, color: CampusColors.muted)),
+      Text('材料勾选保存在本机；离线资料可能过期，办理前请核对原文。',
+          style: TextStyle(fontSize: 10, color: CampusPalette.of(context).muted)),
     ]);
   }
 
   Widget _detail(IconData icon, String label, String name) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+    padding: EdgeInsets.only(bottom: 12),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Icon(icon, size: 16, color: CampusColors.muted),
-      const SizedBox(width: 8),
+      Icon(icon, size: 16, color: CampusPalette.of(context).muted),
+      SizedBox(width: 8),
       SizedBox(width: 62, child: Text(label,
-          style: const TextStyle(fontSize: 12, color: CampusColors.muted))),
-      Expanded(child: Text(field(name), style: const TextStyle(fontSize: 12, height: 1.6))),
+          style: TextStyle(fontSize: 12, color: CampusPalette.of(context).muted))),
+      Expanded(child: Text(field(name), style: TextStyle(fontSize: 12, height: 1.6))),
     ]),
   );
 }

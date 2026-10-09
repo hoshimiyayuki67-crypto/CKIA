@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "campus-assistant"
-version = "0.1.0"
+version = "1.0.0"
 description = "校园万事通后端开发骨架"
 requires-python = ">=3.11,<3.12"
 dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "httpx>=0.27,<1"]
@@ -14,6 +14,9 @@ dev = ["pytest>=8,<9", "httpx>=0.27,<1", "ruff>=0.6,<1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+campus_assistant = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

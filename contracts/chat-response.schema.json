@@ -161,6 +161,16 @@
           "title": "Date",
           "type": "string"
         },
+        "date_precision": {
+          "default": "day",
+          "enum": [
+            "day",
+            "month",
+            "year"
+          ],
+          "title": "Date Precision",
+          "type": "string"
+        },
         "doc_id": {
           "minLength": 1,
           "title": "Doc Id",

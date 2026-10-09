@@ -24,7 +24,7 @@ def create_app(
     search: WebSearch | None = None,
     accounts: Accounts | None = None,
 ) -> FastAPI:
-    application = FastAPI(title="校园万事通", version="0.5.0")
+    application = FastAPI(title="校园万事通", version="1.0.0")
     application.state.accounts = accounts
     application.state.auth_limit = AuthLimit()
     application.state.knowledge = repository if repository is not None else KnowledgeRepository()
@@ -34,6 +34,15 @@ def create_app(
     application.state.call_limit = CallLimit()
     application.include_router(router, prefix="/api/v1")
     application.include_router(accounts_router, prefix="/api/v1")
+
+    @application.get('/api/v1/documents/imuchuangye-handbook-2021')
+    async def handbook_original():
+        # User explicitly approved publishing this original handbook and its chunks.
+        from fastapi import HTTPException
+        files = list((PROJECT / 'knowledge' / 'official').glob('*2021*.doc'))
+        if not files:
+            raise HTTPException(404, '手册原文件未部署')
+        return FileResponse(files[0], media_type='application/msword', filename='student-handbook-2021.doc')
 
     @application.middleware("http")
     async def bounded_body(request, call_next):
@@ -55,7 +64,8 @@ def create_app(
         return {
             "status": "ok",
             "accounts_status": "configured" if accounts else "disabled",
-            "knowledge_status": "loaded" if application.state.knowledge.entries else "not_configured",
+            "knowledge_status": "loaded" if (application.state.knowledge.entries or application.state.knowledge.documents) else "not_configured",
+            "document_chunks": len(application.state.knowledge.documents),
             "demo_mode": demo_mode,
             "ai_status": "configured" if model else "disabled",
             "ai_model": model.model if model else None,

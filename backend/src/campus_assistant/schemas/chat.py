@@ -6,6 +6,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Category = Literal["资助", "教务", "财务", "学籍", "就业", "生活"]
 
 
+class HistoryTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    role: Literal['user', 'assistant']
+    content: str = Field(min_length=1, max_length=1000)
+
+
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     question: str = Field(min_length=1, max_length=2000)
@@ -14,6 +20,7 @@ class ChatRequest(BaseModel):
     school_name: str | None = Field(default=None, max_length=100)
     school_domain: str | None = Field(default=None, max_length=253)
     search_enabled: bool = False
+    history: list[HistoryTurn] = Field(default_factory=list, max_length=12)
 
     @field_validator("question")
     @classmethod
@@ -29,6 +36,7 @@ class Source(BaseModel):
     title: str = Field(min_length=1)
     issuer: str = Field(min_length=1)
     date: date
+    date_precision: Literal['day', 'month', 'year'] = 'day'
     doc_id: str = Field(min_length=1)
     chunk_id: str = Field(min_length=1)
     url: str | None = None

@@ -1,6 +1,8 @@
 import ipaddress
+import json
 import re
 from dataclasses import dataclass
+from pathlib import Path
 
 from campus_assistant.schemas.chat import ChatRequest
 
@@ -10,20 +12,22 @@ class School:
     id: str
     name: str
     domain: str
+    province: str = ''
+    city: str = ''
+    code: str = ''
+    pinyin: str = ''
+    initials: str = ''
+    level: str = '本科'
 
 
-SCHOOLS = (
-    School("imuchuangye", "内蒙古大学创业学院", "imuchuangye.cn"),
-    School("imu", "内蒙古大学", "imu.edu.cn"),
-    School("pku", "北京大学", "pku.edu.cn"),
-    School("tsinghua", "清华大学", "tsinghua.edu.cn"),
-)
+CATALOGUE = json.loads((Path(__file__).resolve().parents[1] / 'data/schools.json').read_text(encoding='utf-8'))
+SCHOOLS = tuple(School(**school) for school in CATALOGUE['schools'])
+SCHOOL_BY_ID = {school.id: school for school in SCHOOLS}
 
 
 def resolve_school(request: ChatRequest) -> School:
-    for school in SCHOOLS:
-        if request.school_id == school.id:
-            return school  # Server registry wins over client-provided names/domains.
+    if request.school_id in SCHOOL_BY_ID:
+        return SCHOOL_BY_ID[request.school_id]  # Server registry wins over client values.
     name = (request.school_name or "").strip()
     domain = (request.school_domain or "").strip().lower().removeprefix("www.")
     try:

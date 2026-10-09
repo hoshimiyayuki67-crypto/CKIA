@@ -1,6 +1,6 @@
 # 知识收录流程
 
-官方原文放 `official/`，经验素材放 `experience/`，清洗切分结果放 `processed/`。当前没有业务资料，不收录设计文档中的示例为真实规则。
+官方原文放 `official/`，经验素材放 `experience/`，清洗切分结果放 `processed/`。用户提供并授权公开的2021年9月学生管理手册已接入，共73个历史参考片段，不作为2026年现行政策或自动办事卡片依据。原文与SHA256登记见official/handbook-2021.manifest.json。
 
 每份文档需登记 doc_id、标题、发布部门、发布日期、来源 URL、六大类别、layer、版本、有效期、收录审核状态。只使用公开且人工核验的内容；含个人信息的截图不能成为知识源。
 
@@ -11,3 +11,5 @@ v0.4 起记录还需设置 `school_id`，对应 `/api/v1/schools` 的院校ID；
 首轮实现读取 processed/*.json，按 contracts/knowledge-entry.schema.json 校验。未经审核、发布日期晚于当前日、有效期或办理期限已过的记录不参与卡片回答。经验层不作为唯一依据。缺失字段传 null；所有填写的办理字段需逐字对应到 chunk_text。
 
 processed 默认忽略生成内容，若要将人工审核的公开资料随仓库交付，应通过评审选择具体文件纳入版本管理。来源候选见 source-candidates.md，示例数据仅位于 backend/examples，默认不加载。
+
+documents/*.jsonl 为原文参考库，按院校隔离、中文双字词BM25检索，并通过连续引用校验后输出可读总结。它与已审核、可执行办事字段的JSON记录分开，不把未经现行审核的旧手册内容转换为办理资格结论。

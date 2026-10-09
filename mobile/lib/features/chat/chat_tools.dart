@@ -9,15 +9,18 @@ extension _ChatTools on _ChatScreenState {
 
   Future<void> _restore() async {
     try {
+      final catalogue = await loadSchoolCatalogue();
       final data = await widget.store?.read() ?? <String, dynamic>{};
       if (!mounted) return;
       setState(() {
+        _catalogue.addAll(catalogue);
         _customSchools.addAll((data['custom_schools'] as List? ?? [])
             .map((value) => School.fromJson(Map<String, dynamic>.from(value as Map))));
-        final all = [...schools, ..._customSchools];
+        final all = [..._catalogue, ..._customSchools];
         _school = all.firstWhere((value) => value.id == data['school_id'], orElse: () => schools.first);
         _searchEnabled = data['search_enabled'] == true;
         _offline = data['offline'] == true;
+        _themePreference = data['theme'] as String? ?? 'system';
         _sessionId = data['current_session'] as String? ?? _sessionId;
         for (final pair in (data['checks'] as Map? ?? {}).entries) {
           _checks[pair.key as String] = (pair.value as List).cast<int>();
@@ -37,6 +40,8 @@ extension _ChatTools on _ChatScreenState {
           }
         }
       });
+      widget.onThemeChanged?.call(ThemeMode.values.firstWhere((mode) => mode.name == _themePreference,
+          orElse: () => ThemeMode.system));
       _scrollToEnd();
     } catch (_) {
       if (!mounted) return;
@@ -84,42 +89,53 @@ extension _ChatTools on _ChatScreenState {
       await widget.store!.write({'version': 1, 'current_session': _sessionId,
         'school_id': _school.id, 'custom_schools': _customSchools.map((value) => value.toJson()).toList(),
         'search_enabled': _searchEnabled, 'offline': _offline,
+        'theme': _themePreference,
         'sessions': _sessions, 'saved': _saved, 'checks': _checks, 'reminders': _reminders,
         'pending_deletes': _pendingDeletes});
     } catch (_) { _notice('保存失败，请检查手机存储空间；本次内容仍可在页面查看'); }
   }
 
   Widget _queryControls() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16),
+    padding: EdgeInsets.symmetric(horizontal: 16),
     child: Column(children: [
       Row(children: [
-        const Icon(Icons.school_outlined, size: 17, color: CampusColors.green),
-        const SizedBox(width: 5),
+        Icon(Icons.school_outlined, size: 17, color: CampusPalette.of(context).green),
+        SizedBox(width: 5),
         Expanded(child: TextButton(onPressed: _sending || _loading || _syncing ? null : _selectSchool,
           style: TextButton.styleFrom(alignment: Alignment.centerLeft),
           child: Text(_school.name, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12)))),
-        const Icon(Icons.expand_more, size: 16),
+              style: TextStyle(fontSize: 12)))),
+        Icon(Icons.expand_more, size: 16),
+        PopupMenuButton<ThemeMode>(tooltip: '外观模式',
+          icon: Icon(Icons.contrast_rounded, size: 20),
+          onSelected: (mode) {
+            setState(() => _themePreference = mode.name);
+            widget.onThemeChanged?.call(mode); _persist();
+          }, itemBuilder: (context) => [
+            for (final mode in ThemeMode.values) CheckedPopupMenuItem(value: mode,
+              checked: widget.themeMode == mode,
+              child: Text(switch(mode) {ThemeMode.system => '跟随系统', ThemeMode.light => '浅色模式', ThemeMode.dark => '暗黑模式'})),
+          ]),
       ]),
       if (widget.cloud?.signedIn == true) Padding(
-        padding: const EdgeInsets.only(bottom: 4), child: Row(children: [
-          Icon(_syncing ? Icons.sync : Icons.cloud_done_outlined, size: 13, color: CampusColors.muted),
-          const SizedBox(width: 5),
-          Text(_syncStatus, style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
+        padding: EdgeInsets.only(bottom: 4), child: Row(children: [
+          Icon(_syncing ? Icons.sync : Icons.cloud_done_outlined, size: 13, color: CampusPalette.of(context).muted),
+          SizedBox(width: 5),
+          Text(_syncStatus, style: TextStyle(fontSize: 10, color: CampusPalette.of(context).muted)),
         ])),
       Row(children: [
         Expanded(child: Row(children: [
-          const Icon(Icons.travel_explore, size: 17, color: CampusColors.muted),
-          const SizedBox(width: 5),
-          const Text('联网搜索', style: TextStyle(fontSize: 11)),
-          Transform.scale(scale: .8, child: Switch(key: const Key('search-switch'),
+          Icon(Icons.travel_explore, size: 17, color: CampusPalette.of(context).muted),
+          SizedBox(width: 5),
+          Text('联网搜索', style: TextStyle(fontSize: 11)),
+          Transform.scale(scale: .8, child: Switch(key: Key('search-switch'),
             value: _searchEnabled && !_offline,
             onChanged: _sending || _syncing || _offline || widget.service.demoMode ? null : (value) {
               setState(() => _searchEnabled = value); _persist();
             })),
         ])),
-        const Text('离线资料', style: TextStyle(fontSize: 11)),
-        Transform.scale(scale: .8, child: Switch(key: const Key('offline-switch'), value: _offline,
+        Text('离线资料', style: TextStyle(fontSize: 11)),
+        Transform.scale(scale: .8, child: Switch(key: Key('offline-switch'), value: _offline,
           onChanged: _sending || _syncing ? null : (value) {
             setState(() => _offline = value); _persist();
           })),
@@ -129,15 +145,8 @@ extension _ChatTools on _ChatScreenState {
 
   Future<void> _selectSchool() async {
     final selected = await showModalBottomSheet<School>(context: context, isScrollControlled: true,
-      builder: (context) => SafeArea(child: SizedBox(height: 420, child: ListView(children: [
-        const ListTile(title: Text('选择院校'), subtitle: Text('查询仅使用所选院校的资料与官网')),
-        for (final school in [...schools, ..._customSchools]) ListTile(
-          title: Text(school.name), subtitle: Text(school.domain),
-          trailing: school.id == _school.id ? const Icon(Icons.check, color: CampusColors.green) : null,
-          onTap: () => Navigator.pop(context, school)),
-        ListTile(leading: const Icon(Icons.add), title: const Text('添加其他院校'),
-          onTap: () { Navigator.pop(context); _addSchool(); }),
-      ]))));
+      builder: (context) => SchoolPicker(schools: [...(_catalogue.isEmpty ? schools : _catalogue), ..._customSchools], selected: _school.id));
+    if (selected?.id == 'add') { if (mounted) await _addSchool(); return; }
     if (selected != null && mounted && selected.id != _school.id) {
       _newChat();
       setState(() => _school = selected);
@@ -149,15 +158,15 @@ extension _ChatTools on _ChatScreenState {
     final name = TextEditingController(), domain = TextEditingController();
     String? error;
     final school = await showDialog<School>(context: context, builder: (context) =>
-      StatefulBuilder(builder: (context, update) => AlertDialog(title: const Text('添加院校'),
+      StatefulBuilder(builder: (context, update) => AlertDialog(title: Text('添加院校'),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: name, maxLength: 100, decoration: const InputDecoration(labelText: '院校全称')),
+          TextField(controller: name, maxLength: 100, decoration: InputDecoration(labelText: '院校全称')),
           TextField(controller: domain, maxLength: 253,
-            decoration: const InputDecoration(labelText: '官网域名', hintText: 'example.edu.cn')),
-          const Text('自定义域名由你提供，请确认官网归属。不会自动导入为审核知识库。',
-              style: TextStyle(fontSize: 11, color: CampusColors.muted)),
-          if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
-        ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+            decoration: InputDecoration(labelText: '官网域名', hintText: 'example.edu.cn')),
+          Text('自定义域名由你提供，请确认官网归属。不会自动导入为审核知识库。',
+              style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted)),
+          if (error != null) Text(error!, style: TextStyle(color: Colors.red)),
+        ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('取消')),
           FilledButton(onPressed: () {
             final host = domain.text.trim().toLowerCase().replaceFirst(RegExp(r'^www\.'), '');
             if (name.text.trim().length < 2 || !RegExp(r'^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$').hasMatch(host)
@@ -165,9 +174,9 @@ extension _ChatTools on _ChatScreenState {
               update(() => error = '请输入院校名称和有效官网域名'); return;
             }
             Navigator.pop(context, School('custom-$host', name.text.trim(), host));
-          }, child: const Text('添加'))])));
+          }, child: Text('添加'))])));
     // Dialog route completes its closing animation before controllers are released.
-    await Future<void>.delayed(const Duration(milliseconds: 250));
+    await Future<void>.delayed(Duration(milliseconds: 250));
     name.dispose(); domain.dispose();
     if (school != null && mounted) {
       _newChat();
@@ -200,70 +209,81 @@ extension _ChatTools on _ChatScreenState {
       }, onReminder: () => _addReminder(item['card']['matter_name'] as String));
   }
 
-  Widget _webSource(Json source) => Padding(padding: const EdgeInsets.only(top: 12),
+  Widget _webSource(Json source) => Padding(padding: EdgeInsets.only(top: 12),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(source['verified'] == true ? '本地审核资料' : '${source['id']} · 官网搜索摘要 · 未审核',
-          style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
-      Text(source['title'] as String? ?? '', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-      Text(source['snippet'] as String? ?? '', style: const TextStyle(fontSize: 12, height: 1.6)),
+      Text(source['historical'] == true ? '本地学生手册 · 历史版本'
+          : source['verified'] == true ? '本地审核资料' : '${source['id']} · 官网搜索摘要 · 未审核',
+          style: TextStyle(fontSize: 10, color: CampusPalette.of(context).muted)),
+      Text(source['title'] as String? ?? '', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+      Text(source['snippet'] as String? ?? '', style: TextStyle(fontSize: 12, height: 1.6)),
       Text('${source['verified'] == true ? '发布于' : '检索于'} ${source['retrieved_at'] ?? ''}',
-          style: const TextStyle(fontSize: 10, color: CampusColors.muted)),
+          style: TextStyle(fontSize: 10, color: CampusPalette.of(context).muted)),
       Wrap(children: [
         TextButton.icon(onPressed: () async {
-          final uri = Uri.tryParse(source['url'] as String? ?? '');
+          final uri = Uri.tryParse(_sourceUrl(source));
           try {
             if (uri == null || !['https', 'http'].contains(uri.scheme) ||
                 !await launchUrl(uri, mode: LaunchMode.externalApplication)) _notice('无法打开链接');
           } catch (_) { _notice('无法打开链接，可复制后使用浏览器查看'); }
-        }, icon: const Icon(Icons.open_in_new, size: 15), label: const Text('查看原文')),
+        }, icon: Icon(Icons.open_in_new, size: 15), label: Text('查看原文')),
         TextButton(onPressed: () async {
-          await Clipboard.setData(ClipboardData(text: source['url'] as String? ?? ''));
+          await Clipboard.setData(ClipboardData(text: _sourceUrl(source)));
           _notice('链接已复制');
-        }, child: const Text('复制链接')),
+        }, child: Text('复制链接')),
       ]),
     ]));
+
+  String _sourceUrl(Json source) {
+    final url = source['url'] as String? ?? '';
+    if (url.startsWith('/') && widget.service is ApiReplyService) {
+      return Uri.parse((widget.service as ApiReplyService).baseUrl).resolve(url).toString();
+    }
+    return url;
+  }
 
   Widget _answerDetails(Json item) {
     final web = (item['web_sources'] as List? ?? [])
         .map((s) => Map<String, dynamic>.from(s as Map)).toList();
     final local = (item['local_evidence'] as Map? ?? {}).entries.map((entry) =>
       {...Map<String, dynamic>.from(entry.value as Map), 'id': entry.key,
-        'verified': true, 'snippet': '', 'retrieved_at': entry.value['date']}).toList();
+        'verified': true, 'historical': entry.value['doc_id'] == 'imuchuangye-handbook-2021',
+        'snippet': '', 'retrieved_at': entry.value['date_precision'] == 'month'
+            ? (entry.value['date'] as String).substring(0, 7) : entry.value['date']}).toList();
     final sources = [...web, ...local];
     final points = item['summary_points'] as List? ?? [];
     final legacy = item['analysis'] as List? ?? [];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      for (final point in points) Padding(padding: const EdgeInsets.only(top: 18),
+      for (final point in points) Padding(padding: EdgeInsets.only(top: 18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [Container(width: 3, height: 16, decoration: BoxDecoration(
-            color: CampusColors.green, borderRadius: BorderRadius.circular(3))),
-            const SizedBox(width: 8), Text(point['heading'] as String,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))]),
-          const SizedBox(height: 8),
-          SelectableText(point['text'] as String, style: const TextStyle(fontSize: 14, height: 1.8)),
+            color: CampusPalette.of(context).green, borderRadius: BorderRadius.circular(3))),
+            SizedBox(width: 8), Text(point['heading'] as String,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700))]),
+          SizedBox(height: 8),
+          SelectableText(point['text'] as String, style: TextStyle(fontSize: 14, height: 1.8)),
           Wrap(spacing: 6, children: [
             for (final ref in (point['support'] as List? ?? [])
                 .map((s) => s['reference'] as String).toSet())
               TextButton.icon(style: TextButton.styleFrom(visualDensity: VisualDensity.compact,
-                  padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  padding: EdgeInsets.symmetric(horizontal: 8)),
                 onPressed: () {
                   final matches = sources.where((s) => s['id'] == ref).toList();
                   if (matches.isNotEmpty) _showPage('原文依据', [_webSource(matches.first),
                     for (final support in point['support'] as List)
-                      if (support['reference'] == ref) Padding(padding: const EdgeInsets.only(top: 12),
-                        child: SelectableText('原文：${support['quote']}', style: const TextStyle(fontSize: 13)))]);
-                }, icon: const Icon(Icons.link_rounded, size: 13),
+                      if (support['reference'] == ref) Padding(padding: EdgeInsets.only(top: 12),
+                        child: SelectableText('原文：${support['quote']}', style: TextStyle(fontSize: 13)))]);
+                }, icon: Icon(Icons.link_rounded, size: 13),
                 label: Text('依据 ${sources.indexWhere((s) => s['id'] == ref) + 1}',
-                  style: const TextStyle(fontSize: 10))),
+                  style: TextStyle(fontSize: 10))),
           ]),
         ])),
       if (sources.isNotEmpty || legacy.isNotEmpty) ExpansionTile(
         title: Text('查看 ${sources.length} 份来源与原文',
-          style: const TextStyle(fontSize: 12, color: CampusColors.muted)),
-        leading: const Icon(Icons.library_books_outlined, size: 17, color: CampusColors.muted),
+          style: TextStyle(fontSize: 12, color: CampusPalette.of(context).muted)),
+        leading: Icon(Icons.library_books_outlined, size: 17, color: CampusPalette.of(context).muted),
         children: [
-          for (final claim in legacy) Padding(padding: const EdgeInsets.only(top: 8),
-            child: Text(claim['text'] as String, style: const TextStyle(fontSize: 12))),
+          for (final claim in legacy) Padding(padding: EdgeInsets.only(top: 8),
+            child: Text(claim['text'] as String, style: TextStyle(fontSize: 12))),
           for (final source in sources) _webSource(source),
         ],
       ),
@@ -273,9 +293,9 @@ extension _ChatTools on _ChatScreenState {
   Future<void> _photo() async {
     final camera = await showModalBottomSheet<bool>(context: context, builder: (context) =>
       SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const ListTile(title: Text('识别通知或材料文字'), subtitle: Text('在手机端识别，照片不上传。发送前请删除个人信息。')),
-        ListTile(leading: const Icon(Icons.camera_alt_outlined), title: const Text('拍照'), onTap: () => Navigator.pop(context, true)),
-        ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('选择图片'), onTap: () => Navigator.pop(context, false)),
+        ListTile(title: Text('识别通知或材料文字'), subtitle: Text('在手机端识别，照片不上传。发送前请删除个人信息。')),
+        ListTile(leading: Icon(Icons.camera_alt_outlined), title: Text('拍照'), onTap: () => Navigator.pop(context, true)),
+        ListTile(leading: Icon(Icons.photo_library_outlined), title: Text('选择图片'), onTap: () => Navigator.pop(context, false)),
       ])));
     if (camera == null || !mounted) return;
     if (widget.device == null) { _notice('请在安卓 APK 中使用图片识别'); return; }
@@ -292,13 +312,13 @@ extension _ChatTools on _ChatScreenState {
     if (text.trim().isEmpty) { _notice('未识别到文字，请重拍清晰的文字区域'); return; }
     final editor = TextEditingController(text: text.length > 2000 ? text.substring(0, 2000) : text);
     final result = await showDialog<String>(context: context, builder: (context) => AlertDialog(
-      title: const Text('核对识别文字'),
+      title: Text('核对识别文字'),
       content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Text('识别可能有误，请修改并删除姓名、学号等个人信息。确认后填入输入框，不会自动发送。', style: TextStyle(fontSize: 12)),
+        Text('识别可能有误，请修改并删除姓名、学号等个人信息。确认后填入输入框，不会自动发送。', style: TextStyle(fontSize: 12)),
         TextField(controller: editor, minLines: 4, maxLines: 10, maxLength: 2000),
-      ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
-        FilledButton(onPressed: () => Navigator.pop(context, editor.text), child: const Text('填入问题'))]));
-    await Future<void>.delayed(const Duration(milliseconds: 250)); editor.dispose();
+      ])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('取消')),
+        FilledButton(onPressed: () => Navigator.pop(context, editor.text), child: Text('填入问题'))]));
+    await Future<void>.delayed(Duration(milliseconds: 250)); editor.dispose();
     if (result != null && mounted) setState(() => _input.text = result);
   }
 
@@ -311,14 +331,14 @@ extension _ChatTools on _ChatScreenState {
         terms.every((term) => '${value['message']} ${value['card'] ?? ''} ${value['summary_points'] ?? ''}'.toLowerCase().contains(term)) &&
         seen.add(value['card'] is Map ? _cardKey(value) : '${value['saved_at']}|${value['message']}'))
         .take(10).toList();
-    _showPage('离线查询结果', hits.isEmpty ? [const Text('未找到已保存的匹配内容。可输入事项关键词，或关闭离线模式查询最新资料。')]
-        : [const Text('仅查询本机已保存的内容，可能过期，不代表现行学校规定。'),
+    _showPage('离线查询结果', hits.isEmpty ? [Text('未找到已保存的匹配内容。可输入事项关键词，或关闭离线模式查询最新资料。')]
+        : [Text('仅查询本机已保存的内容，可能过期，不代表现行学校规定。'),
           for (final hit in hits) _savedItem(hit)]);
   }
 
-  Widget _savedItem(Json item) => Card(child: Padding(padding: const EdgeInsets.all(16),
+  Widget _savedItem(Json item) => Card(child: Padding(padding: EdgeInsets.all(16),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('保存于 ${item['saved_at'] ?? '历史记录'}', style: const TextStyle(fontSize: 11, color: CampusColors.muted)),
+      Text('保存于 ${item['saved_at'] ?? '历史记录'}', style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted)),
       Text(item['message'] as String? ?? ''),
       if (item['card'] is Map) _card(item),
       _answerDetails(item),
@@ -327,7 +347,7 @@ extension _ChatTools on _ChatScreenState {
   void _showPage(String title, List<Widget> children) {
     Navigator.push(context, MaterialPageRoute<void>(builder: (context) => Scaffold(
       appBar: AppBar(title: Text(title)), body: SafeArea(child: ListView(
-        padding: const EdgeInsets.all(16), children: children)))));
+        padding: EdgeInsets.all(16), children: children)))));
   }
 
   Future<void> _addReminder([String? suggested]) async {
@@ -335,28 +355,28 @@ extension _ChatTools on _ChatScreenState {
     final title = TextEditingController(text: suggested ?? '');
     DateTime? when;
     final confirmed = await showDialog<bool>(context: context, builder: (context) =>
-      StatefulBuilder(builder: (context, update) => AlertDialog(title: const Text('设置办事提醒'),
+      StatefulBuilder(builder: (context, update) => AlertDialog(title: Text('设置办事提醒'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: title, maxLength: 100, decoration: const InputDecoration(labelText: '提醒事项')),
-          TextButton.icon(icon: const Icon(Icons.schedule), label: Text(when?.toString().substring(0, 16) ?? '选择日期和时间'),
+          TextField(controller: title, maxLength: 100, decoration: InputDecoration(labelText: '提醒事项')),
+          TextButton.icon(icon: Icon(Icons.schedule), label: Text(when?.toString().substring(0, 16) ?? '选择日期和时间'),
             onPressed: () async {
               final now = DateTime.now();
-              final day = await showDatePicker(context: context, initialDate: now.add(const Duration(days: 1)),
-                  firstDate: now, lastDate: now.add(const Duration(days: 730)));
+              final day = await showDatePicker(context: context, initialDate: now.add(Duration(days: 1)),
+                  firstDate: now, lastDate: now.add(Duration(days: 730)));
               if (day == null || !context.mounted) return;
-              final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
+              final time = await showTimePicker(context: context, initialTime: TimeOfDay(hour: 9, minute: 0));
               if (time != null && context.mounted) update(() => when = DateTime(day.year, day.month, day.day, time.hour, time.minute));
             }),
-          const Text('手机本地通知，省电设置可能导致延迟。请为重要期限保留其他提醒方式。', style: TextStyle(fontSize: 11)),
-        ]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('取消')),
+          Text('手机本地通知，省电设置可能导致延迟。请为重要期限保留其他提醒方式。', style: TextStyle(fontSize: 11)),
+        ]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text('取消')),
           FilledButton(onPressed: () {
             if (title.text.trim().isEmpty || when == null || !when!.isAfter(DateTime.now())) {
               _notice('请输入事项并选择未来时间'); return;
             }
             Navigator.pop(context, true);
-          }, child: const Text('保存'))])));
+          }, child: Text('保存'))])));
     final text = title.text.trim();
-    await Future<void>.delayed(const Duration(milliseconds: 250)); title.dispose();
+    await Future<void>.delayed(Duration(milliseconds: 250)); title.dispose();
     if (confirmed != true || !mounted) return;
     if (widget.device == null) { _notice('请在安卓 APK 中设置系统提醒'); return; }
     final id = DateTime.now().millisecondsSinceEpoch % 2147483647;
@@ -374,12 +394,12 @@ extension _ChatTools on _ChatScreenState {
     if (!mounted) return;
     await Navigator.push(context, MaterialPageRoute<void>(builder: (pageContext) =>
       StatefulBuilder(builder: (pageContext, update) => Scaffold(
-        appBar: AppBar(title: const Text('本地资料与提醒'), actions: [IconButton(
-          tooltip: '清除本地数据', icon: const Icon(Icons.delete_sweep_outlined), onPressed: () async {
+        appBar: AppBar(title: Text('本地资料与提醒'), actions: [IconButton(
+          tooltip: '清除本地数据', icon: Icon(Icons.delete_sweep_outlined), onPressed: () async {
             final confirmed = await showDialog<bool>(context: pageContext, builder: (context) => AlertDialog(
-              title: const Text('清除本机数据？'), content: const Text('删除聊天记录、保存资料、材料勾选、院校设置，并取消已设置提醒。'),
-              actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('取消')),
-                FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('清除'))]));
+              title: Text('清除本机数据？'), content: Text('删除聊天记录、保存资料、材料勾选、院校设置，并取消已设置提醒。'),
+              actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text('取消')),
+                FilledButton(onPressed: () => Navigator.pop(context, true), child: Text('清除'))]));
             if (confirmed != true) return;
             try {
               for (final reminder in _reminders) { await widget.device?.cancel(reminder['id'] as int); }
@@ -395,19 +415,19 @@ extension _ChatTools on _ChatScreenState {
             await _persist();
             if (pageContext.mounted) Navigator.pop(pageContext);
           })]),
-        body: SafeArea(child: ListView(padding: const EdgeInsets.all(16), children: [
+        body: SafeArea(child: ListView(padding: EdgeInsets.all(16), children: [
           Text(_school.name, style: Theme.of(context).textTheme.titleMedium),
-          const Text('本机保留最近20个对话，每个100条消息。登录后的新聊天自动同步；资料夹与提醒仍保存在本机。', style: TextStyle(fontSize: 12)),
-          const SizedBox(height: 20),
-          const Text('保存的资料', style: TextStyle(fontWeight: FontWeight.bold)),
-          if (!_saved.any((value) => value['school_id'] == _school.id)) const ListTile(title: Text('尚未保存资料')),
+          Text('本机保留最近20个对话，每个100条消息。登录后的新聊天自动同步；资料夹与提醒仍保存在本机。', style: TextStyle(fontSize: 12)),
+          SizedBox(height: 20),
+          Text('保存的资料', style: TextStyle(fontWeight: FontWeight.bold)),
+          if (!_saved.any((value) => value['school_id'] == _school.id)) ListTile(title: Text('尚未保存资料')),
           for (final item in _saved.where((value) => value['school_id'] == _school.id)) ListTile(
-            leading: const Icon(Icons.bookmark_outline), title: Text(item['card']['matter_name'] as String),
+            leading: Icon(Icons.bookmark_outline), title: Text(item['card']['matter_name'] as String),
             subtitle: Text(item['saved_at'] as String? ?? ''), onTap: () => _showPage('已保存资料', [_savedItem(item)]),
-            trailing: IconButton(tooltip: '删除资料', icon: const Icon(Icons.delete_outline), onPressed: () {
+            trailing: IconButton(tooltip: '删除资料', icon: Icon(Icons.delete_outline), onPressed: () {
               setState(() => _saved.remove(item)); update(() {}); _persist();
             })),
-          const SizedBox(height: 16), const Text('历史对话', style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 16), Text('历史对话', style: TextStyle(fontWeight: FontWeight.bold)),
           for (final session in _sessions.where((value) => _visibleSession(value) && value['school']['id'] == _school.id)) ListTile(
             title: Text(session['title'] as String, maxLines: 2, overflow: TextOverflow.ellipsis),
             subtitle: Text(session['updated_at'] as String), onTap: () {
@@ -418,24 +438,24 @@ extension _ChatTools on _ChatScreenState {
                     .map((item) => Map<String, dynamic>.from(item as Map)));
               });
               _persist(); Navigator.pop(pageContext); _scrollToEnd();
-            }, trailing: IconButton(tooltip: '删除对话', icon: const Icon(Icons.delete_outline), onPressed: () async {
+            }, trailing: IconButton(tooltip: '删除对话', icon: Icon(Icons.delete_outline), onPressed: () async {
               final confirmed = await showDialog<bool>(context: pageContext, builder: (ctx) => AlertDialog(
-                title: const Text('删除对话？'), content: Text(session['owner'] == null
+                title: Text('删除对话？'), content: Text(session['owner'] == null
                     ? '删除这条本机聊天记录。' : '删除这条聊天，并在同步时删除对应云端记录。'),
-                actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                  FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('删除'))]));
+                actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
+                  FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text('删除'))]));
               if (confirmed != true || !mounted) return;
               await _deleteConversation(session);
               if (pageContext.mounted) update(() {});
             })),
-          const SizedBox(height: 16), Row(children: [
-            const Expanded(child: Text('办事提醒', style: TextStyle(fontWeight: FontWeight.bold))),
+          SizedBox(height: 16), Row(children: [
+            Expanded(child: Text('办事提醒', style: TextStyle(fontWeight: FontWeight.bold))),
             TextButton.icon(onPressed: () async { await _addReminder(); if (pageContext.mounted) update(() {}); },
-              icon: const Icon(Icons.add), label: const Text('新增')),
+              icon: Icon(Icons.add), label: Text('新增')),
           ]),
           for (final reminder in _reminders.where((value) => value['school_id'] == _school.id)) ListTile(
             title: Text(reminder['title'] as String), subtitle: Text(reminder['date'] as String),
-            trailing: IconButton(tooltip: '取消提醒', icon: const Icon(Icons.delete_outline), onPressed: () async {
+            trailing: IconButton(tooltip: '取消提醒', icon: Icon(Icons.delete_outline), onPressed: () async {
               try { await widget.device?.cancel(reminder['id'] as int); }
               catch (_) { _notice('取消失败，请稍后重试'); return; }
               if (!mounted || !pageContext.mounted) return;

@@ -41,6 +41,8 @@ class WebSearch:
         return TavilySearch(key)
 
     async def search(self, school: School, question: str, category: str | None):
+        if not school.domain:
+            raise SearchUnavailable()
         # Strip caller search operators: official domain is always imposed by server.
         terms = re.sub(r"(?:site|filetype|inurl|intitle):\S+", "", question,
                        flags=re.IGNORECASE)
@@ -92,6 +94,7 @@ class TavilySearch(WebSearch):
         super().__init__(transport)
         self._key = api_key
         self._cache = {}
+        self._domains = {}
 
     async def _post(self, client, endpoint, payload):
         import json
@@ -109,6 +112,8 @@ class TavilySearch(WebSearch):
     async def search(self, school: School, question: str, category: str | None):
         if not self._key:
             raise SearchUnavailable()
+        if not school.domain:
+            school = await self._resolve_school_domain(school)
         import time
         cache_key = (school.domain, school.name, question, category)
         cached = self._cache.get(cache_key)
@@ -197,4 +202,37 @@ class TavilySearch(WebSearch):
             self._cache[cache_key] = (time.monotonic(), [s.model_copy(deep=True) for s in results])
             return results
         except (httpx.HTTPError, TimeoutError, ValueError, KeyError, TypeError, AttributeError):
+            raise SearchUnavailable() from None
+
+    async def _resolve_school_domain(self, school):
+        """For new schools without a catalogue domain, accept matching .edu.cn homepages only.
+
+        Uses a public school name, never conversation history; no broad question search
+        occurs until an exact school domain is selected. No arbitrary URL is fetched.
+        """
+        import time
+        from dataclasses import replace
+        cached = self._domains.get(school.id)
+        if cached and time.monotonic() - cached[0] < 3600:
+            return replace(school, domain=cached[1])
+        try:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(8, connect=3),
+                    transport=self.transport, follow_redirects=False) as client:
+                data = await asyncio.wait_for(self._post(client, 'search', {
+                    'query': f'"{school.name}" 官方网站 首页', 'include_domains': ['edu.cn'],
+                    'search_depth': 'basic', 'max_results': 5, 'include_answer': False,
+                    'include_raw_content': False}), timeout=10)
+            for result in data.get('results', [])[:5]:
+                url = urlsplit(str(result.get('url', '')))
+                host = (url.hostname or '').lower().removeprefix('www.')
+                if (url.scheme in {'https', 'http'} and not url.username and not url.password
+                        and url.port in {None, 80, 443} and host.endswith('.edu.cn')
+                        and host.count('.') == 2 and school.name in str(result.get('title', ''))
+                        and url.path in {'', '/', '/index.html', '/index.htm', '/index.jsp'}):
+                    if len(self._domains) >= 512:
+                        self._domains.pop(next(iter(self._domains)))
+                    self._domains[school.id] = (time.monotonic(), host)
+                    return replace(school, domain=host)
+            raise SearchUnavailable()
+        except (httpx.HTTPError, TimeoutError, ValueError, TypeError, AttributeError):
             raise SearchUnavailable() from None

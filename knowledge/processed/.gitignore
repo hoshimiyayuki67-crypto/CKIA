@@ -1,2 +1,4 @@
 *
 !.gitignore
+!documents/
+!documents/handbook-2021.jsonl

@@ -16,7 +16,7 @@ class RecordingService implements ReplyService {
   bool get demoMode => false;
   @override
   Future<Json> ask(String question, String? category,
-      {School school = schoolsFirst, bool searchEnabled = false}) async {
+      {School school = schoolsFirst, bool searchEnabled = false, List<Json> history = const []}) async {
     calls++; selected = school; search = searchEnabled;
     return {'status': 'refusal', 'message': '已保存的测试通知'};
   }

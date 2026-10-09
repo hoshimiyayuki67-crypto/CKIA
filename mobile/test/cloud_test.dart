@@ -44,7 +44,7 @@ class SummaryService implements ReplyService {
   bool get demoMode => false;
   @override
   Future<Json> ask(String question, String? category,
-      {School school = schoolsFirst, bool searchEnabled = false}) async => {
+      {School school = schoolsFirst, bool searchEnabled = false, List<Json> history = const []}) async => {
     'status': 'clarification', 'message': '根据院校资料，为你整理如下：',
     'summary_points': [{'heading': '办理方式', 'text': '在校生可使用自助打印机办理成绩单。',
       'support': [{'reference': 'web-1', 'quote': '在校生自助打印'}]}],

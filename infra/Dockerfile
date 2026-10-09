@@ -17,6 +17,8 @@ RUN python -m pip install --no-cache-dir -r /tmp/requirements.txt \
 
 COPY backend/src /app/backend/src
 COPY backend/examples /app/backend/examples
+COPY knowledge/processed /app/knowledge/processed
+COPY knowledge/official /app/knowledge/official
 COPY web /app/web
 
 USER 10001:10001

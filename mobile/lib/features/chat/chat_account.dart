@@ -125,27 +125,27 @@ extension _ChatAccount on _ChatScreenState {
           padding: EdgeInsets.fromLTRB(24, 0, 24, MediaQuery.viewInsetsOf(sheetContext).bottom + 24),
           child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              const Icon(Icons.cloud_done_outlined, size: 38, color: CampusColors.green),
-              const SizedBox(height: 12),
+              Icon(Icons.cloud_done_outlined, size: 38, color: CampusPalette.of(context).green),
+              SizedBox(height: 12),
               Text(cloud.signedIn ? cloud.user!['username'] as String : '把对话带在身边',
                 textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(cloud.signedIn ? _syncStatus : '登录后，新对话自动保存到云端，换手机也能继续。',
-                textAlign: TextAlign.center, style: const TextStyle(color: CampusColors.muted, fontSize: 12)),
-              const SizedBox(height: 20),
+                textAlign: TextAlign.center, style: TextStyle(color: CampusPalette.of(context).muted, fontSize: 12)),
+              SizedBox(height: 20),
               if (!cloud.signedIn) ...[
-                TextField(key: const Key('account-username'), controller: username, enabled: !busy,
-                  maxLength: 32, autofillHints: const [AutofillHints.username],
-                  decoration: const InputDecoration(labelText: '用户名', helperText: '3–32位字母、数字或下划线')),
-                TextField(key: const Key('account-password'), controller: password, enabled: !busy,
+                TextField(key: Key('account-username'), controller: username, enabled: !busy,
+                  maxLength: 32, autofillHints: [AutofillHints.username],
+                  decoration: InputDecoration(labelText: '用户名', helperText: '3–32位字母、数字或下划线')),
+                TextField(key: Key('account-password'), controller: password, enabled: !busy,
                   obscureText: hidden, maxLength: 128,
                   decoration: InputDecoration(labelText: '密码', helperText: '至少8位，请记住密码',
                     suffixIcon: IconButton(onPressed: () => update(() => hidden = !hidden),
                       icon: Icon(hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined)))),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 FilledButton(onPressed: busy ? null : () => action(() async {
                   if (!RegExp(r'^[a-zA-Z0-9_]{3,32}$').hasMatch(username.text.trim()) || password.text.length < 8) {
-                    throw const CloudError(422, '请检查用户名格式，密码至少8位');
+                    throw CloudError(422, '请检查用户名格式，密码至少8位');
                   }
                   await cloud.authenticate(username.text, password.text, register: register);
                   _newChat();
@@ -153,51 +153,51 @@ extension _ChatAccount on _ChatScreenState {
                 }), child: Text(register ? '创建账号' : '登录')),
                 TextButton(onPressed: busy ? null : () => update(() { register = !register; error = null; }),
                   child: Text(register ? '已有账号？登录' : '没有账号？注册')),
-                const Text('仅同步聊天文字与回答。图片、提醒和资料夹仍保存在本机。暂不提供密码找回。',
-                  style: TextStyle(fontSize: 11, color: CampusColors.muted)),
+                Text('仅同步聊天文字与回答。图片、提醒和资料夹仍保存在本机。暂不提供密码找回。',
+                  style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted)),
               ] else ...[
                 FilledButton.icon(onPressed: busy || _offline ? null : () => action(() => _syncCloud()),
-                  icon: const Icon(Icons.sync), label: const Text('同步云端聊天')),
+                  icon: Icon(Icons.sync), label: Text('同步云端聊天')),
                 OutlinedButton.icon(onPressed: busy || _offline ? null : () => action(() async {
                   final yes = await showDialog<bool>(context: sheetContext, builder: (ctx) => AlertDialog(
-                    title: const Text('导入本机聊天？'),
-                    content: const Text('将未关联账号的本机聊天上传到当前账号，最多保留50个云端对话。'),
-                    actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('导入'))]));
+                    title: Text('导入本机聊天？'),
+                    content: Text('将未关联账号的本机聊天上传到当前账号，最多保留50个云端对话。'),
+                    actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
+                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text('导入'))]));
                   if (yes == true) await _syncCloud(includeLocal: true);
-                }), icon: const Icon(Icons.cloud_upload_outlined), label: const Text('导入本机历史')),
+                }), icon: Icon(Icons.cloud_upload_outlined), label: Text('导入本机历史')),
                 TextButton(onPressed: busy ? null : () => action(() async {
                   final owner = cloud.user!['id'] as String;
                   try { await cloud.logout(); } finally {
                     if (!cloud.signedIn && mounted) await _forgetAccount(owner);
                   }
-                }), child: const Text('退出登录')),
+                }), child: Text('退出登录')),
                 TextButton(onPressed: busy ? null : () => action(() async {
                   final owner = cloud.user!['id'] as String;
                   final confirmation = TextEditingController();
                   final yes = await showDialog<bool>(context: sheetContext, builder: (ctx) => AlertDialog(
-                    title: const Text('删除账号与云端记录？'),
+                    title: Text('删除账号与云端记录？'),
                     content: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Text('此操作永久删除账号及全部云端聊天。请输入密码确认。'),
+                      Text('此操作永久删除账号及全部云端聊天。请输入密码确认。'),
                       TextField(controller: confirmation, obscureText: true, maxLength: 128,
-                        decoration: const InputDecoration(labelText: '密码'))]),
-                    actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
-                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('永久删除'))]));
+                        decoration: InputDecoration(labelText: '密码'))]),
+                    actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('取消')),
+                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text('永久删除'))]));
                   final value = confirmation.text;
-                  await Future<void>.delayed(const Duration(milliseconds: 250)); confirmation.dispose();
+                  await Future<void>.delayed(Duration(milliseconds: 250)); confirmation.dispose();
                   if (yes == true) { await cloud.deleteAccount(value); if (mounted) await _forgetAccount(owner); }
-                }), child: const Text('删除账号', style: TextStyle(color: Colors.red))),
+                }), child: Text('删除账号', style: TextStyle(color: Colors.red))),
               ],
-              if (busy) const Padding(padding: EdgeInsets.all(12),
+              if (busy) Padding(padding: EdgeInsets.all(12),
                 child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))),
-              if (error != null) Text(error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-              const Divider(height: 28),
-              const Text('校园万事通 0.5.1 · 官网资料由 AI 整理，请核对现行要求。',
-                style: TextStyle(fontSize: 11, color: CampusColors.muted)),
+              if (error != null) Text(error!, style: TextStyle(color: Colors.red, fontSize: 12)),
+              Divider(height: 28),
+              Text('校园万事通 1.0.0 · 官网资料由 AI 整理，请核对现行要求。',
+                style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted)),
             ])),
         ));
       }));
-    await Future<void>.delayed(const Duration(milliseconds: 250)); username.dispose(); password.dispose();
+    await Future<void>.delayed(Duration(milliseconds: 250)); username.dispose(); password.dispose();
   }
 
   Future<void> _deleteConversation(Json session) async {

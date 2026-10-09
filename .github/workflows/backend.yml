@@ -3,9 +3,9 @@ name: Backend container
 on:
   push:
     branches: [main]
-    paths: ['backend/**', 'web/**', 'infra/**', '.dockerignore', 'scripts/check-backend-deployment.py', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'web/**', 'infra/**', 'knowledge/**', '.dockerignore', 'scripts/check-backend-deployment.py', '.github/workflows/backend.yml']
   pull_request:
-    paths: ['backend/**', 'web/**', 'infra/**', '.dockerignore', 'scripts/check-backend-deployment.py', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'web/**', 'infra/**', 'knowledge/**', '.dockerignore', 'scripts/check-backend-deployment.py', '.github/workflows/backend.yml']
   workflow_dispatch:
 
 permissions:

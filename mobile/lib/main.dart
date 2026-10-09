@@ -16,7 +16,7 @@ void main() {
       cloud: demo ? null : CloudClient(api, credentials: SecureCredentials(api))));
 }
 
-class CampusApp extends StatelessWidget {
+class CampusApp extends StatefulWidget {
   const CampusApp({super.key, required this.service, this.store, this.device, this.cloud});
   final ReplyService service;
   final LocalStore? store;
@@ -24,12 +24,21 @@ class CampusApp extends StatelessWidget {
   final CloudClient? cloud;
 
   @override
+  State<CampusApp> createState() => _CampusAppState();
+}
+
+class _CampusAppState extends State<CampusApp> {
+  ThemeMode _mode = ThemeMode.system;
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '校园万事通',
       debugShowCheckedModeBanner: false,
-      theme: campusTheme(),
-      home: ChatScreen(service: service, store: store, device: device, cloud: cloud),
+      theme: campusTheme(), darkTheme: campusTheme(Brightness.dark), themeMode: _mode,
+      themeAnimationDuration: const Duration(milliseconds: 220),
+      home: ChatScreen(service: widget.service, store: widget.store, device: widget.device,
+          cloud: widget.cloud, themeMode: _mode,
+          onThemeChanged: (mode) => setState(() => _mode = mode)),
     );
   }
 }

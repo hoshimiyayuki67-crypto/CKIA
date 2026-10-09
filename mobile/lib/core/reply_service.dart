@@ -10,7 +10,7 @@ typedef Json = Map<String, dynamic>;
 abstract class ReplyService {
   bool get demoMode;
   Future<Json> ask(String question, String? category,
-      {School school = schoolsFirst, bool searchEnabled = false});
+      {School school = schoolsFirst, bool searchEnabled = false, List<Json> history = const []});
 }
 
 const schoolsFirst = School('imuchuangye', '内蒙古大学创业学院', 'imuchuangye.cn');
@@ -24,7 +24,7 @@ class DemoReplyService implements ReplyService {
 
   @override
   Future<Json> ask(String question, String? category,
-      {School school = schoolsFirst, bool searchEnabled = false}) async {
+      {School school = schoolsFirst, bool searchEnabled = false, List<Json> history = const []}) async {
     final record = jsonDecode(
       await (loadRecord?.call() ?? rootBundle.loadString('assets/demo-library.json')),
     ) as Json;
@@ -60,7 +60,7 @@ class ApiReplyService implements ReplyService {
 
   @override
   Future<Json> ask(String question, String? category,
-      {School school = schoolsFirst, bool searchEnabled = false}) async {
+      {School school = schoolsFirst, bool searchEnabled = false, List<Json> history = const []}) async {
     final base = Uri.parse(baseUrl);
     if (base.scheme != 'https' || base.host.isEmpty) {
       throw const FormatException('请配置 HTTPS 后端地址');
@@ -76,8 +76,9 @@ class ApiReplyService implements ReplyService {
         if (category != null) 'category': category,
         'school_id': school.id, 'school_name': school.name,
         'school_domain': school.domain, 'search_enabled': searchEnabled,
+        'history': history.length > 12 ? history.sublist(history.length - 12) : history,
       }));
-      final response = await request.close().timeout(const Duration(seconds: 75));
+      final response = await request.close().timeout(const Duration(seconds: 110));
       final text = await response.transform(utf8.decoder).join().timeout(
         const Duration(seconds: 15),
       );
