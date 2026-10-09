@@ -117,7 +117,8 @@ class CloudClient {
     final result = await _request('PUT', '/sessions/${session['id']}', {
       'revision': session['cloud_revision'] ?? 0,
       'data': {for (final key in ['title', 'school', 'category', 'updated_at', 'messages'])
-        key: session[key]},
+        key: key == 'school' ? {for (final field in ['id', 'name', 'domain'])
+          field: session['school'][field]} : session[key]},
     });
     return result['revision'] as int;
   }

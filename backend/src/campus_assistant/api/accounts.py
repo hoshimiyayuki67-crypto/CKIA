@@ -40,8 +40,11 @@ class SessionData(BaseModel):
     @field_validator("school")
     @classmethod
     def school_fields(cls, value):
+        from campus_assistant.services.schools import SCHOOL_BY_ID
         if (set(value) != {"id", "name", "domain"} or
-                any(not isinstance(v, str) or not 1 <= len(v) <= 253 for v in value.values())):
+                any(not isinstance(v, str) or len(v) > 253 for v in value.values()) or
+                not value['id'] or not value['name'] or
+                (not value['domain'] and value['id'] not in SCHOOL_BY_ID)):
             raise ValueError("院校信息不正确")
         return value
 

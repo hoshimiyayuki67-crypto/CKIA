@@ -174,7 +174,7 @@ class _ChatScreenState extends State<ChatScreen> {
           SizedBox(width: 6),
           Expanded(child: Text(widget.service.demoMode
               ? '演示模式 · 虚构测试数据，不是学校规定。'
-              : '依据审核资料 · 信息有出处，办事更安心',
+              : '手册与官网资料 · 请核对版本与现行要求',
               style: TextStyle(fontSize: 11, color: CampusPalette.of(context).muted))),
         ]),
       ),

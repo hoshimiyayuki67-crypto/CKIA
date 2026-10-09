@@ -4,6 +4,7 @@ from pathlib import Path
 import httpx
 from fastapi.testclient import TestClient
 
+from campus_assistant.api.accounts import SessionData
 from campus_assistant.intelligence.deepseek import DeepSeek
 from campus_assistant.main import create_app
 from campus_assistant.repositories.documents import retrieve_documents
@@ -74,3 +75,13 @@ def test_history_roles_and_lengths_are_bounded():
                     [{'role': 'user', 'content': 'a'}] * 13,
                     [{'role': 'user', 'content': 'a' * 1001}]):
         assert client.post('/api/v1/chat', json={'question': 'test', 'history': history}).status_code == 422
+
+
+def test_school_without_domain_can_still_sync_cloud_history():
+    data = {'title': 'history', 'updated_at': '2026-10-09', 'messages': [{'user': True, 'message': 'test'}],
+            'school': {'id': 'pku', 'name': '北京大学', 'domain': ''}}
+    assert SessionData.model_validate(data).school['domain'] == ''
+    import pytest
+    data['school']['id'] = 'custom-unknown'
+    with pytest.raises(ValueError):
+        SessionData.model_validate(data)
