@@ -53,7 +53,9 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           CKIA_CI_BUNDLE: ${{ secrets.CKIA_CI_BUNDLE }}
-        run: python3 scripts/configure_signing.py
+        run: |
+          python3 scripts/test_verify_apk_signing.py
+          python3 scripts/configure_signing.py
       - name: Resolve dependencies
         working-directory: mobile
         run: flutter pub get
