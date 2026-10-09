@@ -12,7 +12,7 @@ main 和版本标签默认构建在线模式，连接已部署的 HTTPS 后端�
 
 `v*` 标签触发同一套分析、测试与 APK 构建；成功后发布 GitHub Release，附 APK 和 SHA256SUMS.txt。标签版本必须与 pubspec.yaml 一致。UI 测试导出首页、对话与小屏幕截图至独立 ui-previews Artifact，发布前进行目视检查。
 
-当前 APK 使用 Flutter 模板开发签名，可用于安装测试；正式发布前配置团队固定签名。不同 CI 运行的开发签名可能不同，覆盖安装失败时需要卸载旧测试版（会清空本地状态）。
+v0.5.1 起 Actions 使用 CKIA_CI_BUNDLE 中的固定发布密钥，核对 infra/keys/android-signing.sha256；缺少密钥或 APK 证书不匹配时停止发布。APK-SIGNATURE.txt 随产物发布。旧开发签名首次迁移需要卸载，请先同步聊天；本机照片、资料夹和提醒不会随云端聊天同步。
 
 ## 本地构建
 
@@ -35,4 +35,4 @@ flutter build apk --release --dart-define=DEMO_MODE=true
 
 在线构建参数：`--dart-define=DEMO_MODE=false --dart-define=API_BASE_URL=https://你的服务地址`。客户端只接受 HTTPS，不在 release 构建启用明文请求。网络错误显示可重试提示，不以离线演示数据代替真实回答。
 
-本地存储、拍照/相册文字识别、离线资料、院校与联网开关使用说明见 [v0.4](../development/v0.4.md)。提醒使用系统本地通知，云端推送和 WebView 仍待实现。真实设备的相机、权限和后台通知需要真机验收。
+本地存储、拍照/相册文字识别、离线资料、院校与联网开关使用说明见 [v0.4](../development/v0.4.md)。提醒使用系统本地通知，云端推送和 WebView 仍待实现。用户已确认 Android 真机验收无问题。

@@ -35,4 +35,6 @@ python3 scripts/check-backend-deployment.py https://v4.yukifn.xyz:7010
 
 SSH 密码、证书私钥和部署 `.env` 不存入仓库。镜像采用 `.env.example` 中可配置的入口，本次使用 Amazon ECR Public。
 
+2026-10-09 已启用 ckia-backup.timer（北京时间02:30），保留7份服务器加密快照；GitHub 每日02:45导出并保留30天。首次异地恢复与密文篡改拒绝验证通过，详见 [恢复说明](maintenance/README.md)。Cloudflare Certbot 插件已安装；自动续期仍等待域名限定 API Token 配置和 dry-run 验证。
+
 Android 工作流 main 推送默认构建连接此 API 的在线 APK；PR 构建仍为离线演示，手动运行可选择演示模式或其他 HTTPS API。旧离线 APK 需要手动替换为新在线构建。
