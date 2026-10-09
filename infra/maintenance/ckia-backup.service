@@ -1,0 +1,16 @@
+[Unit]
+Description=CKIA consistent encrypted cloud data backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/ckia-maintenance/backup.py
+TimeoutStartSec=300
+UMask=0077
+Nice=10
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/backups/ckia
+

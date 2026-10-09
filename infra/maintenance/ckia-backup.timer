@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily CKIA cloud backup at 02:30 China time
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=60
+Unit=ckia-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,6 @@
+artifacts/
+__pycache__/
+*.pyc
+*.p12
+*.jks
+*.keystore

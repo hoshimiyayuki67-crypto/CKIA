@@ -192,7 +192,7 @@ extension _ChatAccount on _ChatScreenState {
                 child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))),
               if (error != null) Text(error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
               const Divider(height: 28),
-              const Text('校园万事通 0.5.0 · 官网资料由 AI 整理，请核对现行要求。',
+              const Text('校园万事通 0.5.1 · 官网资料由 AI 整理，请核对现行要求。',
                 style: TextStyle(fontSize: 11, color: CampusColors.muted)),
             ])),
         ));

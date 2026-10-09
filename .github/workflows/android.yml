@@ -4,9 +4,9 @@ on:
   push:
     branches: [main]
     tags: ['v*']
-    paths: ['mobile/**', 'scripts/prepare_android.py', 'infra/gradle-mirror.init.gradle', '.github/workflows/android.yml']
+    paths: ['mobile/**', 'scripts/prepare_android.py', 'scripts/configure_signing.py', 'scripts/verify_apk_signing.py', 'infra/keys/android-signing.*', 'infra/gradle-mirror.init.gradle', '.github/workflows/android.yml']
   pull_request:
-    paths: ['mobile/**', 'scripts/prepare_android.py', 'infra/gradle-mirror.init.gradle', '.github/workflows/android.yml']
+    paths: ['mobile/**', 'scripts/prepare_android.py', 'scripts/configure_signing.py', 'scripts/verify_apk_signing.py', 'infra/keys/android-signing.*', 'infra/gradle-mirror.init.gradle', '.github/workflows/android.yml']
   workflow_dispatch:
     inputs:
       demo_mode:
@@ -32,6 +32,7 @@ jobs:
     env:
       DEMO_MODE: ${{ github.event_name == 'pull_request' && 'true' || github.event_name == 'workflow_dispatch' && inputs.demo_mode && 'true' || 'false' }}
       API_BASE_URL: ${{ inputs.api_base_url || 'https://v4.yukifn.xyz:7010' }}
+      CAMPUS_SIGNING_REQUIRED: ${{ github.event_name != 'pull_request' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -48,6 +49,11 @@ jobs:
           flutter create --no-pub --platforms=android --project-name=campus_assistant --org=com.muyuan "$RUNNER_TEMP/android_template"
           cp -R "$RUNNER_TEMP/android_template/android" mobile/android
           python3 scripts/prepare_android.py
+      - name: Configure fixed release signing
+        if: github.event_name != 'pull_request'
+        env:
+          CKIA_CI_BUNDLE: ${{ secrets.CKIA_CI_BUNDLE }}
+        run: python3 scripts/configure_signing.py
       - name: Resolve dependencies
         working-directory: mobile
         run: flutter pub get
@@ -83,6 +89,11 @@ jobs:
           flutter build apk --release --build-number="$GITHUB_RUN_NUMBER" --dart-define="DEMO_MODE=$DEMO_MODE" --dart-define="API_BASE_URL=$API_BASE_URL"
           mkdir -p ../artifacts
           cp build/app/outputs/flutter-apk/app-release.apk ../artifacts/campus-assistant.apk
+          if [ "$CAMPUS_SIGNING_REQUIRED" = true ]; then
+            APK_SIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
+            "$APK_SIGNER" verify --verbose --print-certs ../artifacts/campus-assistant.apk > ../artifacts/APK-SIGNATURE.txt
+            python3 ../scripts/verify_apk_signing.py ../artifacts/APK-SIGNATURE.txt ../infra/keys/android-signing.sha256
+          fi
           cd ../artifacts
           sha256sum campus-assistant.apk > SHA256SUMS.txt
       - name: Upload APK
@@ -92,13 +103,14 @@ jobs:
           path: |
             artifacts/campus-assistant.apk
             artifacts/SHA256SUMS.txt
+            artifacts/APK-SIGNATURE.txt
           if-no-files-found: error
           retention-days: 30
       - name: Build summary
         run: |
           echo '### Android APK ready' >> "$GITHUB_STEP_SUMMARY"
           echo 'Download the campus-assistant-android artifact below and extract campus-assistant.apk.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'This preview APK uses Flutter template development signing.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Fixed release signing required: $CAMPUS_SIGNING_REQUIRED" >> "$GITHUB_STEP_SUMMARY"
           echo "Offline demo mode: $DEMO_MODE" >> "$GITHUB_STEP_SUMMARY"
 
   publish:
@@ -122,4 +134,4 @@ jobs:
           cd artifacts
           sha256sum --check SHA256SUMS.txt
           cd ..
-          gh release create "$GITHUB_REF_NAME" artifacts/campus-assistant.apk artifacts/SHA256SUMS.txt --verify-tag --title "校园万事通 $GITHUB_REF_NAME" --notes-file .github/release-notes.md
+          gh release create "$GITHUB_REF_NAME" artifacts/campus-assistant.apk artifacts/SHA256SUMS.txt artifacts/APK-SIGNATURE.txt --verify-tag --title "校园万事通 $GITHUB_REF_NAME" --notes-file .github/release-notes.md

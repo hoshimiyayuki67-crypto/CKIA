@@ -95,3 +95,31 @@ android {
 '''
     gradle.write_text(content, encoding="utf-8")
 print("Android configured: offline Chinese OCR, local reminders, private storage")
+
+content = gradle.read_text(encoding="utf-8")
+if 'campusRelease' not in content:
+    content += '''
+android {
+    signingConfigs {
+        if (System.getenv("CAMPUS_RELEASE_KEYSTORE") != null) {
+            create("campusRelease") {
+                storeFile = file(System.getenv("CAMPUS_RELEASE_KEYSTORE"))
+                storeType = "PKCS12"
+                storePassword = System.getenv("CAMPUS_RELEASE_STORE_PASSWORD")
+                keyAlias = System.getenv("CAMPUS_RELEASE_ALIAS")
+                keyPassword = System.getenv("CAMPUS_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            if (System.getenv("CAMPUS_RELEASE_KEYSTORE") != null) {
+                signingConfig = signingConfigs.getByName("campusRelease")
+            } else if (System.getenv("CAMPUS_SIGNING_REQUIRED") == "true") {
+                throw GradleException("Fixed release signing is required")
+            }
+        }
+    }
+}
+'''
+    gradle.write_text(content, encoding="utf-8")

@@ -1,7 +1,7 @@
 name: campus_assistant
 description: 校园万事通 Flutter 客户端
 publish_to: none
-version: 0.5.0+5
+version: 0.5.1+6
 environment:
   sdk: '>=3.0.0 <4.0.0'
 dependencies:

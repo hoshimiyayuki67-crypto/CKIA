@@ -1,0 +1,55 @@
+name: Encrypted cloud backup
+
+on:
+  schedule:
+    - cron: '45 18 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cloud-backup.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure restricted backup export key
+        env:
+          CKIA_CI_BUNDLE: ${{ secrets.CKIA_CI_BUNDLE }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          data = json.loads(os.environ['CKIA_CI_BUNDLE'])['backup']
+          folder = Path(os.environ['RUNNER_TEMP']) / 'ckia-ssh'
+          folder.mkdir(mode=0o700)
+          key = folder / 'key'
+          key.write_text(data['ssh_private_key']); key.chmod(0o600)
+          (folder / 'known_hosts').write_text(data['known_hosts'])
+          if data['host'] != 'v4.yukifn.xyz' or data['port'] != 7022 or data['user'] != 'ckia-backup':
+              raise SystemExit('Unexpected backup export target')
+          PY
+      - name: Download fresh encrypted snapshot
+        run: |
+          mkdir -p encrypted-backup
+          ssh -T -p 7022 -i "$RUNNER_TEMP/ckia-ssh/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ckia-ssh/known_hosts" -o ConnectTimeout=20 ckia-backup@v4.yukifn.xyz > encrypted-backup/ckia-latest.enc
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('encrypted-backup/ckia-latest.enc')
+          if not p.read_bytes().startswith(b'CKIABK1\n'):
+              raise SystemExit('Export is not an encrypted CKIA backup')
+          PY
+          cd encrypted-backup
+          sha256sum ckia-latest.enc > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-cloud-backup-${{ github.run_number }}
+          path: encrypted-backup/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Remove temporary SSH credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/ckia-ssh/key"
