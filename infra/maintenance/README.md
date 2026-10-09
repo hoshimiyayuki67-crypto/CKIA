@@ -17,5 +17,6 @@ python infra/maintenance/restore_backup.py --backup backup.enc --private-key art
 
 目标目录必须为空；脚本验证认证加密、清单哈希和数据库完整性，不覆盖线上数据。
 恢复后的配置与证书含敏感信息，保存在受限目录，不上传日志或Artifact。
-2026-10-09 首次服务器备份与本机隔离恢复已通过。
+2026-10-09 首次服务器备份、GitHub异地导出及从异地Artifact下载后的隔离恢复均已通过；篡改密文验证被拒绝。
+Cloudflare Certbot 插件已安装，reload-certificate.sh 可安装为续期deploy hook，尚未接入Token或验证续期。
 证书自动续期等待Cloudflare域名限定Token配置，当前证书2027-01-06到期。
