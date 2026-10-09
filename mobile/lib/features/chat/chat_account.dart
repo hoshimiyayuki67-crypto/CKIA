@@ -15,6 +15,7 @@ extension _ChatAccount on _ChatScreenState {
       setState(() { _messages.clear(); _sessionOwner = null;
         _sessionId = DateTime.now().microsecondsSinceEpoch.toString(); });
     }
+    if (_messages.isEmpty) _sessionOwner = widget.cloud?.user?['id'] as String?;
     setState(() {});
     await _syncCloud();
   }

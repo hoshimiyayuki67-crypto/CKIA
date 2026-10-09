@@ -323,7 +323,10 @@ class _ChatScreenState extends State<ChatScreen> {
             minLines: 1, maxLines: 4, maxLength: 2000, enabled: !_sending && !_syncing && !_loading,
             style: const TextStyle(fontSize: 14),
             decoration: const InputDecoration(
-              hintText: '想办什么事？在这里问我', counterText: '', border: InputBorder.none,
+              hintText: '说说你想办的事…', counterText: '', filled: false,
+              contentPadding: EdgeInsets.symmetric(vertical: 12), border: InputBorder.none,
+              enabledBorder: InputBorder.none, focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
               hintStyle: TextStyle(color: CampusColors.muted, fontSize: 13),
             ),
           )),

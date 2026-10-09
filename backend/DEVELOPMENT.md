@@ -65,6 +65,8 @@ Set-Location backend
 
 ## 院校与联网证据
 
+v0.5 增加官网正文/内部页面检索、带原文支撑的归纳总结与 SQLite 账号/云端聊天，接口、存储和验证详见 [v0.5](../development/v0.5.md)。开发时可设置 `CAMPUS_DATA_DIR` 指向工作区内的临时目录启用账号；生产使用持久命名卷。
+
 `school_id` 默认 imuchuangye；本地审核知识按院校隔离。`search_enabled` 默认 false，不调用搜索服务。联网查询使用服务器 `TAVILY_API_KEY`，只请求所选院校官网域名，并与审核记录共同交给模型筛选可验证原文证据；网络摘要不能生成正式办事卡片。未配置密钥、网络错误或非法模型分析都明确降级。配置、接口字段和客户端使用详见 [v0.4](../development/v0.4.md)。
 
 `requirements-dev.lock.txt` 记录首次验证环境的完整第三方包版本（无哈希，Windows/Python 3.11），不包含本项目和 pip/setuptools。变更依赖后重新安装验证并更新版本清单。
