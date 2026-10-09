@@ -1,18 +1,18 @@
 # 当前部署记录
 
-2026-10-08 已部署并从开发机通过公网验证。
+2026-10-09 已更新正式版后端并从开发机通过公网验证。
 
 - API：`https://v4.yukifn.xyz:7010`
 - 健康检查：`https://v4.yukifn.xyz:7010/health`
 - 服务器：ARM64 Armbian / Ubuntu 26.04。
 - 源码目录：`/opt/campus-assistant`，使用 Git archive 上传已提交源码。
-- 应用运行源码版本：`6f8d542`（v0.5 后端，兼容 v0.5.0 APK）。
-- API 镜像：`campus-assistant-api:6f8d542`。
+- 应用运行源码版本：`c352dd5`（v1.0.0 后端）。
+- API 镜像：`campus-assistant-api:c352dd5`。
 - Compose：`infra/compose.yaml` + `infra/compose.tls.yaml`，环境文件 `infra/.env`。
 - 网关监听服务器 7010，转发至 API；API 只发布到 `127.0.0.1:8000`。
 - Docker 服务启用开机启动，两个容器使用 `unless-stopped` 重启策略。
 
-健康状态为 `ok`、`demo_mode=false`、`knowledge_status=not_configured`，`ai_status=configured`、`ai_model=deepseek-flash`。DeepSeek 官方模型列表验证通过，公网 `/api/v1/chat` 使用 `--require-ai` 验证真实模型调用成功、`ai_status=used`，无依据时仍拒答。当前无学校审核资料，不提供虚构办事依据。
+健康状态为 `ok`、`demo_mode=false`、`knowledge_status=loaded`、`document_chunks=73`，`ai_status=configured`、`ai_model=deepseek-flash`、`search_status=configured`。手册为2021年9月历史参考版本；已审核的现行办事卡片资料仍为空。真实模型手册总结、上下文追问、跨院校隔离、浙江大学官网精准搜索与摘要已验证。无已知官网的登记院校云端聊天保存/读取也已通过临时账号验证，测试账号已删除。
 
 模型密钥只保存在服务器权限 0600 的 `infra/.env`，由 Compose 注入后端容器。现有在线 APK 直接连接新版后端；v0.5 归纳总结、来源折叠、账号等新入口需要新版 APK。调用限额及故障降级见 [后端开发](../backend/DEVELOPMENT.md)。本地48项后端测试通过；Android Actions 完成静态分析、12项 Flutter 测试和 APK 构建。
 
@@ -35,6 +35,6 @@ python3 scripts/check-backend-deployment.py https://v4.yukifn.xyz:7010
 
 SSH 密码、证书私钥和部署 `.env` 不存入仓库。镜像采用 `.env.example` 中可配置的入口，本次使用 Amazon ECR Public。
 
-2026-10-09 已启用 ckia-backup.timer（北京时间02:30），保留7份服务器加密快照；GitHub 每日02:45导出并保留30天。首次异地恢复与密文篡改拒绝验证通过，详见 [恢复说明](maintenance/README.md)。Cloudflare Certbot 插件已安装；自动续期仍等待域名限定 API Token 配置和 dry-run 验证。
+2026-10-09 已启用 ckia-backup.timer（北京时间02:30），保留7份服务器加密快照；GitHub 每日02:45导出并保留30天。首次异地恢复与密文篡改拒绝验证通过，正式版部署后备份执行成功，详见 [恢复说明](maintenance/README.md)。HTTPS自动续期按用户要求取消，不再等待Cloudflare Token，保留手动DNS续期方式。
 
 Android 工作流 main 推送默认构建连接此 API 的在线 APK；PR 构建仍为离线演示，手动运行可选择演示模式或其他 HTTPS API。旧离线 APK 需要手动替换为新在线构建。
