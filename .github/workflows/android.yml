@@ -92,6 +92,7 @@ jobs:
           if [ "$CAMPUS_SIGNING_REQUIRED" = true ]; then
             APK_SIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
             "$APK_SIGNER" verify --verbose --print-certs ../artifacts/campus-assistant.apk > ../artifacts/APK-SIGNATURE.txt
+            cat ../artifacts/APK-SIGNATURE.txt
             python3 ../scripts/verify_apk_signing.py ../artifacts/APK-SIGNATURE.txt ../infra/keys/android-signing.sha256
           fi
           cd ../artifacts
@@ -106,6 +107,13 @@ jobs:
             artifacts/APK-SIGNATURE.txt
           if-no-files-found: error
           retention-days: 30
+      - name: Upload public signing diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signing-diagnostics-${{ github.run_number }}
+          path: artifacts/APK-SIGNATURE.txt
+          if-no-files-found: ignore
       - name: Build summary
         run: |
           echo '### Android APK ready' >> "$GITHUB_STEP_SUMMARY"

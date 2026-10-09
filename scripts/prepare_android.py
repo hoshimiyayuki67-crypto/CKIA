@@ -98,6 +98,8 @@ print("Android configured: offline Chinese OCR, local reminders, private storage
 
 content = gradle.read_text(encoding="utf-8")
 if 'campusRelease' not in content:
+    content = content.replace('signingConfig = signingConfigs.getByName("debug")',
+        '// Release signing is configured below.')
     content += '''
 android {
     signingConfigs {
